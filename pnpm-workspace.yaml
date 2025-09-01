@@ -1,0 +1,8 @@
+packages:
+  - "apps/*"
+  - "libs/*"
+onlyBuiltDependencies:
+  - "detox"
+  - "dtrace-provider"
+  - "esbuild"
+  - "unrs-resolver"

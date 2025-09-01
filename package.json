@@ -1,0 +1,16 @@
+{
+  "name": "chat-stats",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.15.0",
+  "devDependencies": {
+    "@monodon/rust": "^2.3.0",
+    "@nx/expo": "^21.4.1",
+    "@nx/node": "^21.4.1",
+    "nx": "21.4.1"
+  }
+}

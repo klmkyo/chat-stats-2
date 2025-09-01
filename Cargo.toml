@@ -1,0 +1,10 @@
+
+[workspace]
+resolver = '2'
+members = [
+	'libs/chat-processor',
+	'apps/chat-processor-cli',
+]
+
+[profile.release]
+lto = true
