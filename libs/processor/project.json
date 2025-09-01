@@ -1,8 +1,8 @@
 {
-  "name": "chat-processor",
+  "name": "processor",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "library",
-  "sourceRoot": "libs/chat-processor/src",
+  "sourceRoot": "libs/processor/src",
   "tags": [],
   "targets": {
     "build": {
@@ -11,7 +11,7 @@
         "{options.target-dir}"
       ],
       "options": {
-        "target-dir": "dist/target/chat-processor"
+        "target-dir": "dist/target/processor"
       }
     },
     "test": {
@@ -21,7 +21,7 @@
         "{options.target-dir}"
       ],
       "options": {
-        "target-dir": "dist/target/chat-processor"
+        "target-dir": "dist/target/processor"
       },
       "configurations": {
         "production": {
@@ -36,7 +36,7 @@
         "{options.target-dir}"
       ],
       "options": {
-        "target-dir": "dist/target/chat-processor"
+        "target-dir": "dist/target/processor"
       }
     }
   }

@@ -2,8 +2,8 @@
 [workspace]
 resolver = '2'
 members = [
-	'libs/chat-processor',
-	'apps/chat-processor-cli',
+	'libs/processor',
+	'apps/processor-cli',
 ]
 
 [profile.release]

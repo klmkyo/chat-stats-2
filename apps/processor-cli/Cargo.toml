@@ -1,11 +1,11 @@
 [package]
-name = "chat-processor-cli"
+name = "processor-cli"
 version = "0.1.0"
 edition = "2021"
 
 
 [dependencies]
-chat-processor = { path = "../../libs/chat-processor" }
+processor = { path = "../../libs/processor" }
 
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

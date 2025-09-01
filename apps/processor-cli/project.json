@@ -1,8 +1,8 @@
 {
-  "name": "chat-processor-cli",
+  "name": "processor-cli",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
-  "sourceRoot": "./apps/chat-processor-cli/src",
+  "sourceRoot": "./apps/processor-cli/src",
   "targets": {
     "build": {
       "cache": true,
@@ -11,7 +11,7 @@
         "{options.target-dir}"
       ],
       "options": {
-        "target-dir": "dist/target/chat-processor-cli"
+        "target-dir": "dist/target/processor-cli"
       },
       "configurations": {
         "production": {
@@ -26,7 +26,7 @@
         "{options.target-dir}"
       ],
       "options": {
-        "target-dir": "dist/target/chat-processor-cli"
+        "target-dir": "dist/target/processor-cli"
       },
       "configurations": {
         "production": {
@@ -41,7 +41,7 @@
         "{options.target-dir}"
       ],
       "options": {
-        "target-dir": "dist/target/chat-processor-cli"
+        "target-dir": "dist/target/processor-cli"
       }
     },
     "run": {
@@ -50,7 +50,7 @@
         "{options.target-dir}"
       ],
       "options": {
-        "target-dir": "dist/target/chat-processor-cli"
+        "target-dir": "dist/target/processor-cli"
       },
       "configurations": {
         "production": {

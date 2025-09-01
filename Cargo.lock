@@ -3,12 +3,12 @@
 version = 4
 
 [[package]]
-name = "chat-processor"
+name = "processor"
 version = "0.1.0"
 
 [[package]]
-name = "chat-processor-cli"
+name = "processor-cli"
 version = "0.1.0"
 dependencies = [
- "chat-processor",
+ "processor",
 ]
