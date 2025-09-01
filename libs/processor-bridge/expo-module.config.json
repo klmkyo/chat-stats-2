@@ -1,0 +1,15 @@
+{
+  "platforms": [
+    "apple"
+  ],
+  "apple": {
+    "modules": [
+      "ProcessorBridgeModule"
+    ]
+  },
+  "android": {
+    "modules": [
+      "expo.modules.processorbridge.ProcessorBridgeModule"
+    ]
+  }
+}
