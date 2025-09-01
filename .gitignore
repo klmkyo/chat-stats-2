@@ -6,3 +6,18 @@ node_modules
 .github/instructions/nx.instructions.md
 
 dist/
+
+# Expo
+node_modules/
+.expo/
+.yarn/
+dist/
+npm-debug.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+web-build/
+cache/
