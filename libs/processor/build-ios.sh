@@ -23,10 +23,12 @@ for TARGET in "${TARGETS[@]}"; do
   cargo build --manifest-path Cargo.toml --target "$TARGET" --release
 done
 
-cp dist/target/aarch64-apple-ios/release/libprocessor.a dist/libprocessor-ios.a
-cp dist/target/aarch64-apple-ios-sim/release/libprocessor.a dist/libprocessor-ios-sim.a
+# clean previous xcframework
+rm -rf dist/Processor.xcframework
 
-# Generate header
-cbindgen --config cbindgen.toml --crate processor --output dist/processor.h
+xcodebuild -create-xcframework \
+  -library dist/target/aarch64-apple-ios/release/libprocessor.a -headers dist/generated/include \
+  -library dist/target/aarch64-apple-ios-sim/release/libprocessor.a -headers dist/generated/include \
+  -output dist/Processor.xcframework
 
 echo -e "${GREEN}Done.${NC}"

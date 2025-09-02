@@ -10,9 +10,9 @@ DEST_DIR="$MODULE_IOS_DIR/Vendored/Processor"
 
 mkdir -p "$DEST_DIR"
 
-cp -f "$SRC_DIR/processor.h" "$DEST_DIR/processor.h"
-cp -f "$SRC_DIR/libprocessor-ios.a" "$DEST_DIR/libprocessor-ios.a"
-cp -f "$SRC_DIR/libprocessor-ios-sim.a" "$DEST_DIR/libprocessor-ios-sim.a"
+rm -rf "$DEST_DIR/Processor.xcframework"
+
+cp -R "$SRC_DIR/Processor.xcframework" "$DEST_DIR/Processor.xcframework"
 
 echo "Synced processor artifacts to $DEST_DIR"
 

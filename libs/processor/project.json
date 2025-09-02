@@ -16,7 +16,6 @@
     },
     "build-ios": {
       "command": "bash build-ios.sh",
-      "cache": true,
       "outputs": [
         "{projectRoot}/dist/*"
       ],
