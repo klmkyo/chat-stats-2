@@ -21,7 +21,15 @@
       ],
       "options": {
         "cwd": "{projectRoot}"
-      }
+      },
+      "inputs": [
+        "{projectRoot}/src/**/*",
+        "{projectRoot}/Cargo.toml",
+        "{projectRoot}/build.rs",
+        "{projectRoot}/cbindgen.toml",
+        "{projectRoot}/build-ios.sh"
+      ],
+      "cache": true
     },
     "test": {
       "cache": true,
