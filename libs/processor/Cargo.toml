@@ -19,4 +19,4 @@ opt-level = "z"
 codegen-units = 1
 
 [lib]
-crate-type = ["staticlib"]
+crate-type = ["staticlib", "rlib"]
