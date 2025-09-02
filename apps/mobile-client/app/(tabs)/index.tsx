@@ -5,9 +5,20 @@ import { ThemedView } from '@/components/ThemedView'
 import { Image } from 'expo-image'
 import { Platform, StyleSheet } from 'react-native'
 
-import ProcessorBridge from 'processor-bridge'
+import ProcessorBridge from '@/modules/processor-bridge'
+import { useEffect, useState } from 'react'
 
 export default function HomeScreen() {
+  const [result, setResult] = useState(0)
+
+  const rustAdd = async () => {
+    const result = await ProcessorBridge.rustAdd(1, 2)
+    setResult(result)
+  }
+
+  useEffect(() => {
+    rustAdd()
+  }, [])
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
@@ -24,6 +35,7 @@ export default function HomeScreen() {
       </ThemedView>
 
       <ThemedText type="title">Native: {ProcessorBridge.hello()}</ThemedText>
+      <ThemedText type="title">Result: {result}</ThemedText>
       <ThemedView style={styles.stepContainer}>
         <ThemedText type="subtitle">Step 1: Try it</ThemedText>
         <ThemedText>
