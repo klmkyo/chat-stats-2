@@ -6,6 +6,7 @@ declare class ProcessorBridgeModule extends NativeModule<ProcessorBridgeModuleEv
   PI: number;
   hello(): string;
   setValueAsync(value: string): Promise<void>;
+  rustAdd(a: number, b: number): Promise<number>;
 }
 
 // This call loads the native module object from the JSI.

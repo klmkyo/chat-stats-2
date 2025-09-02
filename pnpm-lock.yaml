@@ -168,11 +168,10 @@ importers:
         version: 5.8.3
 
   libs/processor-bridge:
-    dependencies:
-      react:
-        specifier: 19.0.0
-        version: 19.0.0
     devDependencies:
+      '@types/react':
+        specifier: ~19.0.10
+        version: 19.0.14
       expo:
         specifier: ~53.0.22
         version: 53.0.22(@babel/core@7.28.3)(@expo/metro-runtime@5.0.4(react-native@0.79.6(@babel/core@7.28.3)(@types/react@19.0.14)(react@19.0.0)))(react-native-webview@13.13.5(react-native@0.79.6(@babel/core@7.28.3)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native@0.79.6(@babel/core@7.28.3)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)

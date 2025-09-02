@@ -14,6 +14,16 @@
         "target-dir": "dist/target/processor"
       }
     },
+    "build-ios": {
+      "command": "bash build-ios.sh",
+      "cache": true,
+      "outputs": [
+        "{projectRoot}/dist/*"
+      ],
+      "options": {
+        "cwd": "{projectRoot}"
+      }
+    },
     "test": {
       "cache": true,
       "executor": "@monodon/rust:test",

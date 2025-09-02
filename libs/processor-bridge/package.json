@@ -26,15 +26,15 @@
   "author": "Marcin Klimek <mail@mklimek.dev> (klmkyo)",
   "license": "MIT",
   "homepage": "https://example.com#readme",
-  "dependencies": {},
-  "devDependencies": {
-    "expo-module-scripts": "^4.1.10",
-    "expo": "workspace:*",
-    "react-native": "workspace:*"
+  "dependencies": {
+    "expo": "~53.0.22",
+    "react": "19.0.0",
+    "react-native": "0.79.6"
   },
-  "peerDependencies": {
-    "expo": "*",
-    "react": "*",
-    "react-native": "*"
+  "devDependencies": {
+    "@types/react": "~19.0.0",
+    "expo-module-scripts": "^4.1.10",
+    "expo": "~53.0.0",
+    "react-native": "0.79.1"
   }
 }
