@@ -1,0 +1,43 @@
+---
+alwaysApply: true
+description: Architecture and folder responsibilities for the Chat Stats Nx monorepo
+---
+
+### Overview
+Chat export and analysis app. Users import chats, the app computes insights on‑device. The Expo mobile app offloads intensive processing to a shared Rust library for performance and cross‑platform parity. For now we only support iOS.
+
+### Repository layout (what lives where)
+- `apps/mobile-client`: Expo app and native bridge.
+  - UI: `apps/mobile-client/app`, `apps/mobile-client/components`
+  - Bridge: `apps/mobile-client/modules/processor-bridge` (iOS)
+  - Config: [apps/mobile-client/project.json](mdc:apps/mobile-client/project.json)
+  - Relevant NX targets:
+    - `sync-processor`: runs [apps/mobile-client/modules/processor-bridge/ios/scripts/sync-processor.sh](mdc:apps/mobile-client/modules/processor-bridge/ios/scripts/sync-processor.sh) and depends on `processor:build-ios`, imports the updated XCFramework and headers
+- `libs/processor`: Rust processing core shared by mobile/CLI.
+  - Source: `libs/processor/src` (e.g., [libs/processor/src/lib.rs](mdc:libs/processor/src/lib.rs))
+  - Artifacts: `libs/processor/dist/` (XCFramework, headers)
+  - Relevant NX targets:
+    - `build-ios`: runs [libs/processor/build-ios.sh](mdc:libs/processor/build-ios.sh) and produces XCFramework and headers
+- `apps/processor-cli`: Rust CLI for local verification.
+  - Entry: [apps/processor-cli/src/main.rs](mdc:apps/processor-cli/src/main.rs)
+
+### Native bridge (JS ↔ iOS)
+- Module registration: [apps/mobile-client/modules/processor-bridge/expo-module.config.json](mdc:apps/mobile-client/modules/processor-bridge/expo-module.config.json)
+- JS API surface: [ProcessorBridgeModule.ts](mdc:apps/mobile-client/modules/processor-bridge/src/ProcessorBridgeModule.ts)
+- Native implementations live under:
+  - iOS: `apps/mobile-client/modules/processor-bridge/ios`
+  - Android: there is a folder for that, but ignore it. We don't support Android yet.
+
+### Rust processing library (`libs/processor`)
+- Crate exports FFI symbols used by the bridge.
+- Build produces `Processor.xcframework` and C headers under `libs/processor/dist/` for consumption by the iOS bridge.
+- Shared crate is also consumed by the CLI, which is used for testing.
+
+### Extending the processing API
+1) Add a new function in Rust (export as `extern "C"`, `#[no_mangle]`) in [lib.rs](mdc:libs/processor/src/lib.rs), and update crate logic as needed.
+2) Update the JS API typing in [ProcessorBridgeModule.ts](mdc:apps/mobile-client/modules/processor-bridge/src/ProcessorBridgeModule.ts) and ensure native iOS implementation calls into the new FFI symbol.
+3) Consume from the Expo app code under `apps/mobile-client/app`.
+
+### Additional Notes
+- Package manager: pnpm.
+- No need to run build targets, unless you want to see if the build succeeds.
