@@ -34,8 +34,8 @@ Chat export and analysis app. Users import chats, the app computes insights onâ€
 - Shared crate is also consumed by the CLI, which is used for testing.
 
 #### Edit instructions
-- After editing, headers are automatically updated to include the new functions, our build script runs `cbindgen` to generate the headers, so you don't need to do it manually.
-- In order for functions to be picked up by the bridge, you need to mark them with `#[no_mangle]` and `pub extern "C"`.
+- In order for functions to be picked up by the bridge, you need to mark them with `#[no_mangle]` and `pub extern "C"`. Also add them to the `include` array in the `[export]` section of [cbindgen.toml](mdc:libs/processor/cbindgen.toml).
+- Our build script runs `cbindgen` to generate the headers, so you don't need to do it manually.
 
 ### Extending the processing API
 1) Add a new function in Rust (export as `extern "C"`, `#[no_mangle]`) in [lib.rs](mdc:libs/processor/src/lib.rs), and update crate logic as needed.
