@@ -33,6 +33,10 @@ Chat export and analysis app. Users import chats, the app computes insights onâ€
 - Build produces `Processor.xcframework` and C headers under `libs/processor/dist/` for consumption by the iOS bridge.
 - Shared crate is also consumed by the CLI, which is used for testing.
 
+#### Edit instructions
+- After editing, headers are automatically updated to include the new functions, our build script runs `cbindgen` to generate the headers, so you don't need to do it manually.
+- In order for functions to be picked up by the bridge, you need to mark them with `#[no_mangle]` and `pub extern "C"`.
+
 ### Extending the processing API
 1) Add a new function in Rust (export as `extern "C"`, `#[no_mangle]`) in [lib.rs](mdc:libs/processor/src/lib.rs), and update crate logic as needed.
 2) Update the JS API typing in [ProcessorBridgeModule.ts](mdc:apps/mobile-client/modules/processor-bridge/src/ProcessorBridgeModule.ts) and ensure native iOS implementation calls into the new FFI symbol.
