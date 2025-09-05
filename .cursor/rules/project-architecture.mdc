@@ -27,6 +27,7 @@ Chat export and analysis app. Users import chats, the app computes insights onâ€
 - Native implementations live under:
   - iOS: `apps/mobile-client/modules/processor-bridge/ios`
   - Android: there is a folder for that, but ignore it. We don't support Android yet.
+- If there is a linter error like `No such module 'ExpoModulesCore'`, ignore it.
 
 ### Rust processing library (`libs/processor`)
 - Crate exports FFI symbols used by the bridge.
@@ -45,3 +46,4 @@ Chat export and analysis app. Users import chats, the app computes insights onâ€
 ### Additional Notes
 - Package manager: pnpm.
 - No need to run build targets, unless you want to see if the build succeeds.
+- The creator of this project, while very familiar with JS and React (web), is not familiar with Swift, React Native or more advanced parts of Rust. For this reason, please explain the changes made, and comment them accordingly.
