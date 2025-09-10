@@ -17,6 +17,9 @@
          location = "group:ProcessorBridgeModule.swift">
       </FileRef>
       <FileRef
+         location = "group:ZipPickerDelegate.swift">
+      </FileRef>
+      <FileRef
          location = "group:ProcessorBridgeView.swift">
       </FileRef>
       <Group
