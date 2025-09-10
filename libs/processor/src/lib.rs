@@ -11,6 +11,8 @@ use std::io::{Read, Seek};
 use std::os::fd::{FromRawFd, OwnedFd};
 use zip::read::ZipArchive;
 
+pub mod zip_merged;
+
 pub const APP_NAME: &str = "Chat Processor";
 
 /// Information about a file or directory within a ZIP archive.
