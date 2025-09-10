@@ -27,11 +27,6 @@
       "dependsOn": [
         "sync-processor"
       ]
-    },
-    "android": {
-      "dependsOn": [
-        "sync-processor"
-      ]
     }
   }
 }

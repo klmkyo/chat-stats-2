@@ -2,11 +2,15 @@ import { NativeModule, requireNativeModule } from 'expo';
 
 import { ProcessorBridgeModuleEvents } from './ProcessorBridge.types';
 
+// Type for file information returned from Rust
+export interface FileInfo {
+  name: string;
+  size: number;
+  is_directory: boolean;
+}
+
 declare class ProcessorBridgeModule extends NativeModule<ProcessorBridgeModuleEvents> {
-  PI: number;
-  hello(): string;
-  setValueAsync(value: string): Promise<void>;
-  rustAdd(a: number, b: number): Promise<number>;
+  pickAndListZip(): Promise<string>;
 }
 
 
