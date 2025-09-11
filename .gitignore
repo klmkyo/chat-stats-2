@@ -26,3 +26,5 @@ cache/
 
 workbench/fb-export
 workbench/artifacts
+*.db
+*.zip
