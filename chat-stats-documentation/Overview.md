@@ -7,17 +7,19 @@ Chat export and analysis app. Users import chats from various communicators, the
 	2. User picks from a list of communicators, like Messenger, Whatsapp etc.
 	3. After picking one of the communicators, user is taken to a flow which explains how to export their data. Includes a PiP video playing step-by-step instructions.
 	4. After exporting their data, either user goes to next step, or if export is expected to happen after a long time (like waiting for facebook export), we send a notification in 2, 3 days or something
-2. Importing data:
+2. Importing data, creating normalized messages DB:
 	1. User selects the data export artifacts, like the related zip file or zip files.
 	2. The file info is passed to the rust project, which reads the artifacts, and processes them
-	3. Rust project outputs processed data into a SQL database
-3. Generating stats:
+	3. Rust project outputs processed data into a SQL database. 
+3. Generating stats (extend normalized messages DB, add additional data, not necessarily tied to a single message):
 	1. UNDECIDED:
 		1. Generate helper table which contains useful stuff, end result is so that we can later generate rest of stats pretty much on the fly (to allow also smooth operation of last year, month, week selectors. Ideally we would only be making queries to the sqlite db)
 		2. We add additional tables if needed, like a table which records each instance of people laughing at messages, or a long wait for a response to a message
+		3. 
 4. Using the app:
-	1. Header - Our app name, and a dropdown to pick a communicator (Messenger, whatsapp)
-	2. Bottom Bar:
+	1. App reads the data from the sqlite databases, and makes sqlite commands to fetch data for stats
+	2. Header - Our app name, and a dropdown to pick a communicator (Messenger, whatsapp)
+	3. Bottom Bar:
 		1. Global stats - compare chats between people - who do you text the most with, at what time do you text who the most, with whom do you have the largest texting streak
 		2. Personal stats - For DM's, group chats,
 		3. Maybe settings?
@@ -33,12 +35,12 @@ Tables:
 	 - id
 	 - external_id
 	 - name
-	 - avatar_url
+	 - avatar_uri
  - conversation
 	 - id
 	 - type: 'dm' | 'group'
 	 - participants: FK user.id
-	 - image: string // either other participant img or GC image
+	 - image_uri: string // either other participant img or GC image
 	 - name: string // either other participant user name or GC username
  - message
 	 - id
@@ -47,13 +49,57 @@ Tables:
 	 - sent_at: Date
 	 - REFERENCED IN:
 		 - reaction
+ - message_text:
+	 - message_id: FK message.id
+	 - text: String
+ - message_image
+	 - message_id: FK message.id
+	 - image_uri: String
+- message_video
+	 - message_id: FK message.id
+	 - video_uri: String
+- message_gif
+	 - message_id: FK message.id
+	 - gif_uri: String
+- message_audio
+	 - message_id: FK message.id
+	 - audio_uri: String
+	 - length_seconds: int
  - reaction:
 	 - id
 	 - reactor_id: FK user.id
 	 - message_id: FK message_id
 	 - reaction: String (or whatever is enough for one emoji)
 
-TODO: How to store message contents? Ideally, we'd store the text contents of course, but for audio messages, we'd like to store metadata, like audio length. Should we just have nullable fields in message, or separate tables somehow?
+## Project Structure:
+The Expo mobile app offloads intensive processing to a shared Rust library for performance and cross‑platform parity. For now we only support iOS.
+### Repository layout (what lives where)
+- `apps/mobile-client`: Expo app and native bridge.
+  - UI: `apps/mobile-client/app`, `apps/mobile-client/components`
+  - Bridge: `apps/mobile-client/modules/processor-bridge` (iOS)
+  - Config: [apps/mobile-client/project.json](mdc:apps/mobile-client/project.json)
+  - Relevant NX targets:
+    - `sync-processor`: runs [apps/mobile-client/modules/processor-bridge/ios/scripts/sync-processor.sh](mdc:apps/mobile-client/modules/processor-bridge/ios/scripts/sync-processor.sh) and depends on `processor:build-ios`, imports the updated XCFramework and headers
+- `libs/processor`: Rust processing core shared by mobile/CLI.
+  - Source: `libs/processor/src` (e.g., [libs/processor/src/lib.rs](mdc:libs/processor/src/lib.rs))
+  - Artifacts: `libs/processor/dist/` (XCFramework, headers)
+  - Relevant NX targets:
+    - `build-ios`: runs [libs/processor/build-ios.sh](mdc:libs/processor/build-ios.sh) and produces XCFramework and headers
+- `apps/processor-cli`: Rust CLI for local verification.
+  - Entry: [apps/processor-cli/src/main.rs](mdc:apps/processor-cli/src/main.rs)
+
+### Native bridge (JS ↔ iOS)
+- Module registration: [apps/mobile-client/modules/processor-bridge/expo-module.config.json](mdc:apps/mobile-client/modules/processor-bridge/expo-module.config.json)
+- JS API surface: [ProcessorBridgeModule.ts](mdc:apps/mobile-client/modules/processor-bridge/src/ProcessorBridgeModule.ts)
+- Native implementations live under:
+  - iOS: `apps/mobile-client/modules/processor-bridge/ios`
+  - Android: there is a folder for that, but ignore it. We don't support Android yet.
+- If there is a linter error like `No such module 'ExpoModulesCore'`, ignore it.
+
+### Rust processing library (`libs/processor`)
+- Crate exports FFI symbols used by the bridge.
+- Build produces `Processor.xcframework` and C headers under `libs/processor/dist/` for consumption by the iOS bridge.
+- Shared crate is also consumed by the CLI, which is used for testing.
 
 
 ## Questions to answer
@@ -61,4 +107,3 @@ TODO: How to store message contents? Ideally, we'd store the text contents of co
  - Various communicators have different features, or some features might not be supported. Because of this, not merging might be a good idea, to reduce inconsistencies.
  - Should we have a sqlite database for each communicator, or one db for all communicators?
  - What exactly does the rust script need to run?
- - 

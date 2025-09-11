@@ -33,9 +33,20 @@ done
 # clean previous xcframework
 rm -rf dist/Processor.xcframework
 
+IOS_LIB="dist/target/aarch64-apple-ios/release/libprocessor.a"
+IOS_SIM_LIB="dist/target/aarch64-apple-ios-sim/release/libprocessor.a"
+
 xcodebuild -create-xcframework \
-  -library dist/target/aarch64-apple-ios/release/libprocessor.a -headers dist/generated/include \
-  -library dist/target/aarch64-apple-ios-sim/release/libprocessor.a -headers dist/generated/include \
+  -library "$IOS_LIB" -headers dist/generated/include \
+  -library "$IOS_SIM_LIB" -headers dist/generated/include \
   -output dist/Processor.xcframework
+
+# Print the human-readable size of the non-simulator (device) static library
+if [ -f "$IOS_LIB" ]; then
+  SIZE_HUMAN=$(du -h "$IOS_LIB" | cut -f1)
+  echo -e "${BLUE}libprocessor.a (device) size: ${SIZE_BYTES} bytes (${SIZE_HUMAN})${NC}"
+else
+  echo -e "${BLUE}libprocessor.a (device) not found!${NC}"
+fi
 
 echo -e "${GREEN}Done.${NC}"
