@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Root {
+pub struct MessengerJsonRoot {
     pub participants: Vec<Participant>,
     pub messages: Vec<Message>,
     pub title: String,

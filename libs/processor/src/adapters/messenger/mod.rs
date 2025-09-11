@@ -3,7 +3,7 @@ use anyhow::{Context, Result};
 use regex::Regex;
 use std::{fs::File, io::Read};
 
-use crate::adapters::messenger::json::Root;
+use crate::adapters::messenger::json::MessengerJsonRoot;
 
 pub mod json;
 
@@ -43,7 +43,7 @@ pub fn build_merged_tree_from_fds(zip_files: Vec<File>) -> Result<()> {
             file.read_to_string(&mut json_content)
                 .context("Failed to read entry")?;
 
-            let json: Root = serde_json::from_str(&json_content)?;
+            let json: MessengerJsonRoot = serde_json::from_str(&json_content)?;
 
             println!("JSON messages: {}", json.messages.len());
         }
