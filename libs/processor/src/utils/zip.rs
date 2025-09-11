@@ -1,2 +1,1 @@
-use anyhow::{Context, Result};
-use std::fs::File;
+// Zip-related utilities can live here when needed.

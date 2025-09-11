@@ -30,25 +30,7 @@ impl ConversationType {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
-pub enum MessageType {
-    Text,
-    Image,
-    Gif,
-    Audio,
-    Video,
-}
-impl MessageType {
-    fn as_str(self) -> &'static str {
-        match self {
-            MessageType::Text => "text",
-            MessageType::Image => "image",
-            MessageType::Gif => "gif",
-            MessageType::Audio => "audio",
-            MessageType::Video => "video",
-        }
-    }
-}
+// Messages are now untyped; content lives in message_* tables referencing message(id).
 
 impl MessageDb {
     /// Open (or create) a SQLite database at `db_path`, configure pragmas, and apply migrations.
@@ -119,32 +101,36 @@ impl MessageDb {
                   id INTEGER PRIMARY KEY,
                   sender INTEGER NOT NULL REFERENCES user(id),
                   conversation INTEGER NOT NULL REFERENCES conversation(id),
-                  type TEXT CHECK(type IN ('text','image','gif','audio','video')) NOT NULL,
                   sent_at INTEGER NOT NULL  -- epoch seconds
                 );
 
                 CREATE TABLE IF NOT EXISTS message_text(
-                  message_id INTEGER PRIMARY KEY REFERENCES message(id) ON DELETE CASCADE,
+                  id INTEGER PRIMARY KEY,
+                  message_id INTEGER NOT NULL REFERENCES message(id) ON DELETE CASCADE,
                   text TEXT
                 );
 
                 CREATE TABLE IF NOT EXISTS message_image(
-                  message_id INTEGER PRIMARY KEY REFERENCES message(id) ON DELETE CASCADE,
+                  id INTEGER PRIMARY KEY,
+                  message_id INTEGER NOT NULL REFERENCES message(id) ON DELETE CASCADE,
                   image_uri TEXT
                 );
 
                 CREATE TABLE IF NOT EXISTS message_video(
-                  message_id INTEGER PRIMARY KEY REFERENCES message(id) ON DELETE CASCADE,
+                  id INTEGER PRIMARY KEY,
+                  message_id INTEGER NOT NULL REFERENCES message(id) ON DELETE CASCADE,
                   video_uri TEXT
                 );
 
                 CREATE TABLE IF NOT EXISTS message_gif(
-                  message_id INTEGER PRIMARY KEY REFERENCES message(id) ON DELETE CASCADE,
+                  id INTEGER PRIMARY KEY,
+                  message_id INTEGER NOT NULL REFERENCES message(id) ON DELETE CASCADE,
                   gif_uri TEXT
                 );
 
                 CREATE TABLE IF NOT EXISTS message_audio(
-                  message_id INTEGER PRIMARY KEY REFERENCES message(id) ON DELETE CASCADE,
+                  id INTEGER PRIMARY KEY,
+                  message_id INTEGER NOT NULL REFERENCES message(id) ON DELETE CASCADE,
                   audio_uri TEXT,
                   length_seconds INTEGER
                 );
@@ -216,143 +202,58 @@ impl<'c> WriteBatch<'c> {
         Ok(())
     }
 
-    /// Core message insert.
-    fn insert_message_core(
-        &mut self,
-        id: i64,
-        sender_id: i64,
-        conversation_id: i64,
-        mtype: MessageType,
-        sent_at_epoch: i64,
-    ) -> Result<()> {
-        // NOTE: 5 columns -> 5 placeholders.
+    /// Insert base message row (no content-type).
+    pub fn insert_message(&mut self, id: i64, sender_id: i64, conversation_id: i64, sent_at_epoch: i64) -> Result<()> {
         self.tx.as_ref().unwrap().execute(
-            "INSERT INTO message(id, sender, conversation, type, sent_at)
-             VALUES (?1, ?2, ?3, ?4, ?5)",
-            params![
-                id,
-                sender_id,
-                conversation_id,
-                mtype.as_str(),
-                sent_at_epoch
-            ],
+            "INSERT INTO message(id, sender, conversation, sent_at)
+             VALUES (?1, ?2, ?3, ?4)",
+            params![id, sender_id, conversation_id, sent_at_epoch],
         )?;
         Ok(())
     }
 
-    /// Insert a text message (message + message_text).
-    pub fn insert_message_text(
-        &mut self,
-        id: i64,
-        sender_id: i64,
-        conversation_id: i64,
-        text: &str,
-        sent_at_epoch: i64,
-    ) -> Result<()> {
-        self.insert_message_core(
-            id,
-            sender_id,
-            conversation_id,
-            MessageType::Text,
-            sent_at_epoch,
-        )?;
+    /// Add text content to an existing message.
+    pub fn add_message_text(&mut self, message_id: i64, text: &str) -> Result<()> {
         self.tx.as_ref().unwrap().execute(
             "INSERT INTO message_text(message_id, text) VALUES (?1, ?2)",
-            params![id, text],
+            params![message_id, text],
         )?;
         Ok(())
     }
 
-    /// Insert an image message.
-    pub fn insert_message_image(
-        &mut self,
-        id: i64,
-        sender_id: i64,
-        conversation_id: i64,
-        image_uri: &str,
-        sent_at_epoch: i64,
-    ) -> Result<()> {
-        self.insert_message_core(
-            id,
-            sender_id,
-            conversation_id,
-            MessageType::Image,
-            sent_at_epoch,
-        )?;
+    /// Add an image attachment to an existing message.
+    pub fn add_message_image(&mut self, message_id: i64, image_uri: &str) -> Result<()> {
         self.tx.as_ref().unwrap().execute(
             "INSERT INTO message_image(message_id, image_uri) VALUES (?1, ?2)",
-            params![id, image_uri],
+            params![message_id, image_uri],
         )?;
         Ok(())
     }
 
-    /// Insert a video message.
-    pub fn insert_message_video(
-        &mut self,
-        id: i64,
-        sender_id: i64,
-        conversation_id: i64,
-        video_uri: &str,
-        sent_at_epoch: i64,
-    ) -> Result<()> {
-        self.insert_message_core(
-            id,
-            sender_id,
-            conversation_id,
-            MessageType::Video,
-            sent_at_epoch,
-        )?;
+    /// Add a video attachment to an existing message.
+    pub fn add_message_video(&mut self, message_id: i64, video_uri: &str) -> Result<()> {
         self.tx.as_ref().unwrap().execute(
             "INSERT INTO message_video(message_id, video_uri) VALUES (?1, ?2)",
-            params![id, video_uri],
+            params![message_id, video_uri],
         )?;
         Ok(())
     }
 
-    /// Insert a GIF message.
-    pub fn insert_message_gif(
-        &mut self,
-        id: i64,
-        sender_id: i64,
-        conversation_id: i64,
-        gif_uri: &str,
-        sent_at_epoch: i64,
-    ) -> Result<()> {
-        self.insert_message_core(
-            id,
-            sender_id,
-            conversation_id,
-            MessageType::Gif,
-            sent_at_epoch,
-        )?;
+    /// Add a GIF attachment to an existing message.
+    pub fn add_message_gif(&mut self, message_id: i64, gif_uri: &str) -> Result<()> {
         self.tx.as_ref().unwrap().execute(
             "INSERT INTO message_gif(message_id, gif_uri) VALUES (?1, ?2)",
-            params![id, gif_uri],
+            params![message_id, gif_uri],
         )?;
         Ok(())
     }
 
-    /// Insert an audio message.
-    pub fn insert_message_audio(
-        &mut self,
-        id: i64,
-        sender_id: i64,
-        conversation_id: i64,
-        audio_uri: &str,
-        length_seconds: Option<i64>,
-        sent_at_epoch: i64,
-    ) -> Result<()> {
-        self.insert_message_core(
-            id,
-            sender_id,
-            conversation_id,
-            MessageType::Audio,
-            sent_at_epoch,
-        )?;
+    /// Add an audio attachment to an existing message.
+    pub fn add_message_audio(&mut self, message_id: i64, audio_uri: &str, length_seconds: Option<i64>) -> Result<()> {
         self.tx.as_ref().unwrap().execute(
             "INSERT INTO message_audio(message_id, audio_uri, length_seconds)
              VALUES (?1, ?2, ?3)",
-            params![id, audio_uri, length_seconds],
+            params![message_id, audio_uri, length_seconds],
         )?;
         Ok(())
     }
@@ -373,21 +274,11 @@ impl<'c> WriteBatch<'c> {
     }
 
     // Optional: "now" (SQLite clock) helpers
-    pub fn insert_message_text_now(
-        &mut self,
-        id: i64,
-        sender_id: i64,
-        conversation_id: i64,
-        text: &str,
-    ) -> Result<()> {
+    pub fn insert_message_now(&mut self, id: i64, sender_id: i64, conversation_id: i64) -> Result<()> {
         self.tx.as_ref().unwrap().execute(
-            "INSERT INTO message(id, sender, conversation, type, sent_at)
-             VALUES (?1, ?2, ?3, 'text', unixepoch('now'))",
+            "INSERT INTO message(id, sender, conversation, sent_at)
+             VALUES (?1, ?2, ?3, unixepoch('now'))",
             params![id, sender_id, conversation_id],
-        )?;
-        self.tx.as_ref().unwrap().execute(
-            "INSERT INTO message_text(message_id, text) VALUES (?1, ?2)",
-            params![id, text],
         )?;
         Ok(())
     }

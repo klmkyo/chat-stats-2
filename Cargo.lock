@@ -661,6 +661,7 @@ dependencies = [
  "anyhow",
  "cbindgen",
  "jni",
+ "once_cell",
  "regex",
  "rusqlite",
  "rusqlite_migration",

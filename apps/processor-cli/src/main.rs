@@ -1,6 +1,5 @@
 use clap::{Parser, Subcommand};
 use processor::{self, APP_NAME};
-use std::fs::File;
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -12,10 +11,13 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Merge directory trees of multiple ZIP files and write to a text file
-    ListZips {
-        /// Paths to ZIP files to merge
-        #[arg(value_name = "ZIP_FILES")]
+    /// Import mixed Messenger/E2E exports (ZIP or JSON) into a normalized SQLite DB
+    NormalizeMessenger {
+        /// Output SQLite DB path (will be overwritten)
+        #[arg(long)]
+        db: PathBuf,
+        /// Input files: any mix of old ZIPs, new E2E ZIPs, or JSON files
+        #[arg(value_name = "FILES", num_args = 1..)]
         files: Vec<PathBuf>,
     },
 }
@@ -24,24 +26,20 @@ fn main() {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::ListZips { files: file_paths } => {
-            if file_paths.is_empty() {
-                eprintln!("No ZIP files provided.");
+        Commands::NormalizeMessenger { db, files } => {
+            if files.is_empty() {
+                eprintln!("No files provided.");
                 std::process::exit(2);
             }
-
-            let files: Vec<File> = file_paths
-                .into_iter()
-                .map(|path| File::open(path).unwrap())
-                .collect();
-
-            match processor::adapters::messenger::build_merged_tree_from_fds(files) {
+            // Overwrite existing DB once
+            if db.exists() {
+                let _ = std::fs::remove_file(&db);
+            }
+            match processor::adapters::messenger::import_mixed_inputs_to_sqlite(files, &db) {
+                Ok(()) => println!("Imported into DB: {}", db.display()),
                 Err(e) => {
-                    eprintln!("Error building tree: {}", e);
+                    eprintln!("Import failed: {}", e);
                     std::process::exit(1);
-                }
-                Ok(()) => {
-                    println!("Tree built successfully");
                 }
             }
         }
