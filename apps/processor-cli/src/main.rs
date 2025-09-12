@@ -32,98 +32,23 @@ fn main() {
                 std::process::exit(2);
             }
 
-            // First, discover all conversations
-            let discovery_result =
-                match processor::importers::messenger::discover_conversations(files.clone()) {
-                    Ok(result) => result,
-                    Err(e) => {
-                        eprintln!("Discovery failed: {}", e);
-                        std::process::exit(1);
-                    }
-                };
-
-            // Generate automatic merges based on title matching
-            let merges = generate_automatic_merges(&discovery_result);
-
-            if !merges.is_empty() {
-                println!(
-                    "Found {} automatic conversation matches based on titles:",
-                    merges.len()
-                );
-                for merge in &merges {
-                    println!(
-                        "  Merging '{}' (Facebook: {}, E2E: {})",
-                        merge.merged_title, merge.facebook_id, merge.e2e_id
-                    );
-                }
-            }
-
             // Overwrite existing DB once
             if db.exists() {
                 let _ = std::fs::remove_file(&db);
             }
 
-            let merge_instructions = if merges.is_empty() {
-                None
-            } else {
-                Some(merges)
-            };
-            match processor::importers::messenger::import_to_database(
-                files,
-                &db,
-                merge_instructions,
-            ) {
+            // Stage 1: Import everything into normalized DB with export_source
+            match processor::importers::messenger::import_to_database(files, &db) {
                 Ok(()) => println!("Imported into DB: {}", db.display()),
                 Err(e) => {
                     eprintln!("Import failed: {}", e);
                     std::process::exit(1);
                 }
             }
+
+            // TODO: Stage 2: Query DB and merge duplicates based on heuristics
+            // This will be implemented next to query the database, find duplicate conversations
+            // based on title matching and participant overlap, and merge them.
         }
     }
-}
-
-/// Generate automatic conversation merges based on title matching.
-fn generate_automatic_merges(
-    discovery: &processor::importers::messenger::DiscoveryResult,
-) -> Vec<processor::importers::messenger::ConversationMerge> {
-    let mut merges = Vec::new();
-
-    // Create a map of titles to Facebook conversations for quick lookup
-    let mut facebook_by_title: std::collections::HashMap<
-        String,
-        &processor::importers::messenger::DiscoveredConversation,
-    > = std::collections::HashMap::new();
-    for fb_conv in &discovery.facebook_conversations {
-        facebook_by_title.insert(fb_conv.title.clone(), fb_conv);
-    }
-
-    // For each E2E conversation, look for an exact title match in Facebook conversations
-    for e2e_conv in &discovery.e2e_conversations {
-        if let Some(fb_conv) = facebook_by_title.get(&e2e_conv.title) {
-            // Check if they have the same conversation type and similar participant counts
-            if fb_conv.conversation_type == e2e_conv.conversation_type {
-                let fb_participant_count = fb_conv.participants.len();
-                let e2e_participant_count = e2e_conv.participants.len();
-
-                // Allow some flexibility in participant counts (people might have left/joined)
-                let count_diff = if fb_participant_count > e2e_participant_count {
-                    fb_participant_count - e2e_participant_count
-                } else {
-                    e2e_participant_count - fb_participant_count
-                };
-
-                // Only merge if participant count difference is reasonable (≤ 2 people difference)
-                if count_diff <= 2 {
-                    merges.push(processor::importers::messenger::ConversationMerge {
-                        facebook_id: fb_conv.id.clone(),
-                        e2e_id: e2e_conv.id.clone(),
-                        merged_title: fb_conv.title.clone(), // Use Facebook title as canonical
-                    });
-                }
-            }
-        }
-    }
-
-    merges
 }

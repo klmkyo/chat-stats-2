@@ -61,9 +61,9 @@ pub fn import_thread(
         }
     }
 
-    // Get canonical conversation key (considering merges)
-    let canonical_conv_key = state.get_conversation_key(&parsed.thread_path);
-    let conv_id = if let Some(&cid) = state.conv_ids.get(&canonical_conv_key) {
+    // Create conversation with Facebook export source
+    let conv_key = parsed.thread_path.clone();
+    let conv_id = if let Some(&cid) = state.conv_ids.get(&conv_key) {
         cid
     } else {
         let cid = state.next_conv_id;
@@ -74,11 +74,16 @@ pub fn import_thread(
             ConversationType::Group
         };
         let image_uri = parsed.image.as_ref().map(|i| i.uri.as_str());
-        let title = state.get_conversation_title(&parsed.thread_path, &parsed.title);
         batch
-            .insert_conversation(cid, ctype, image_uri, Some(&title))
-            .with_context(|| format!("insert conversation {} ({})", cid, canonical_conv_key))?;
-        state.conv_ids.insert(canonical_conv_key.clone(), cid);
+            .insert_conversation(
+                cid,
+                ctype,
+                image_uri,
+                Some(&parsed.title),
+                "messenger:facebook",
+            )
+            .with_context(|| format!("insert conversation {} ({})", cid, conv_key))?;
+        state.conv_ids.insert(conv_key.clone(), cid);
         cid
     };
 

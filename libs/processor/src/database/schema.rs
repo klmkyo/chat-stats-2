@@ -98,7 +98,8 @@ impl MessageDb {
                   id INTEGER PRIMARY KEY,
                   type TEXT CHECK(type IN ('dm','group')) NOT NULL,
                   image_uri TEXT,
-                  name TEXT
+                  name TEXT,
+                  export_source TEXT NOT NULL
                 );
 
                 CREATE TABLE IF NOT EXISTS message(
@@ -198,10 +199,11 @@ impl<'c> WriteBatch<'c> {
         ctype: ConversationType,
         image_uri: Option<&str>,
         name: Option<&str>,
+        export_source: &str,
     ) -> Result<()> {
         self.tx.as_ref().unwrap().execute(
-            "INSERT INTO conversation(id, type, image_uri, name) VALUES (?1, ?2, ?3, ?4)",
-            params![id, ctype.as_str(), image_uri, name],
+            "INSERT INTO conversation(id, type, image_uri, name, export_source) VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![id, ctype.as_str(), image_uri, name, export_source],
         )?;
         Ok(())
     }
