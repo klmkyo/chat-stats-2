@@ -61,6 +61,9 @@ impl MessageDb {
         conn.pragma_update(None, "busy_timeout", 5000_i64)
             .context("setting PRAGMA busy_timeout=5000")?;
 
+        conn.pragma_update(None, "journal_mode", "OFF")?;
+        conn.pragma_update(None, "synchronous", "OFF")?;
+
         Self::apply_migrations(&mut conn).context("applying migrations")?;
 
         Ok(Self { path, conn })
