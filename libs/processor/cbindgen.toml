@@ -8,6 +8,8 @@ line_length = 100
 [export]
 include = [
   "processor_import_file",
+  "processor_discover_conversations",
+  "processor_import_with_merges",
   "processor_list_archive_contents",
   "processor_string_free",
 ]

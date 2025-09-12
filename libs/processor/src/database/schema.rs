@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result};
 use rusqlite::{params, Connection, Transaction};
 use rusqlite_migration::{Migrations, M};
+use serde::{Deserialize, Serialize};
 
 /// Thin wrapper around a `rusqlite` connection that ensures schema is ready.
 pub struct MessageDb {
@@ -16,9 +17,11 @@ pub struct WriteBatch<'c> {
     tx: Option<Transaction<'c>>,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub enum ConversationType {
+    #[serde(rename = "dm")]
     DM,
+    #[serde(rename = "group")]
     Group,
 }
 
@@ -204,7 +207,13 @@ impl<'c> WriteBatch<'c> {
     }
 
     /// Insert base message row (no content-type).
-    pub fn insert_message(&mut self, id: i64, sender_id: i64, conversation_id: i64, sent_at_epoch: i64) -> Result<()> {
+    pub fn insert_message(
+        &mut self,
+        id: i64,
+        sender_id: i64,
+        conversation_id: i64,
+        sent_at_epoch: i64,
+    ) -> Result<()> {
         self.tx.as_ref().unwrap().execute(
             "INSERT INTO message(id, sender, conversation, sent_at)
              VALUES (?1, ?2, ?3, ?4)",
@@ -250,7 +259,12 @@ impl<'c> WriteBatch<'c> {
     }
 
     /// Add an audio attachment to an existing message.
-    pub fn add_message_audio(&mut self, message_id: i64, audio_uri: &str, length_seconds: Option<i64>) -> Result<()> {
+    pub fn add_message_audio(
+        &mut self,
+        message_id: i64,
+        audio_uri: &str,
+        length_seconds: Option<i64>,
+    ) -> Result<()> {
         self.tx.as_ref().unwrap().execute(
             "INSERT INTO message_audio(message_id, audio_uri, length_seconds)
              VALUES (?1, ?2, ?3)",
@@ -275,7 +289,12 @@ impl<'c> WriteBatch<'c> {
     }
 
     // Optional: "now" (SQLite clock) helpers
-    pub fn insert_message_now(&mut self, id: i64, sender_id: i64, conversation_id: i64) -> Result<()> {
+    pub fn insert_message_now(
+        &mut self,
+        id: i64,
+        sender_id: i64,
+        conversation_id: i64,
+    ) -> Result<()> {
         self.tx.as_ref().unwrap().execute(
             "INSERT INTO message(id, sender, conversation, sent_at)
              VALUES (?1, ?2, ?3, unixepoch('now'))",

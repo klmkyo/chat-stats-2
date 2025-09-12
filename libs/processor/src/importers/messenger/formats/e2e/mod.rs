@@ -93,9 +93,9 @@ pub fn import_e2e_json(
         }
     }
 
-    // Conversation per threadName
-    let conv_key = parsed.thread_name.clone();
-    let conv_id = if let Some(&cid) = state.conv_ids.get(&conv_key) {
+    // Get canonical conversation key (considering merges)
+    let canonical_conv_key = state.get_conversation_key(&parsed.thread_name);
+    let conv_id = if let Some(&cid) = state.conv_ids.get(&canonical_conv_key) {
         cid
     } else {
         let cid = state.next_conv_id;
@@ -105,10 +105,11 @@ pub fn import_e2e_json(
         } else {
             ConversationType::Group
         };
+        let title = state.get_conversation_title(&parsed.thread_name, &parsed.thread_name);
         batch
-            .insert_conversation(cid, ctype, None, Some(&parsed.thread_name))
-            .with_context(|| format!("insert conversation {} ({})", cid, conv_key))?;
-        state.conv_ids.insert(conv_key.clone(), cid);
+            .insert_conversation(cid, ctype, None, Some(&title))
+            .with_context(|| format!("insert conversation {} ({})", cid, canonical_conv_key))?;
+        state.conv_ids.insert(canonical_conv_key.clone(), cid);
         cid
     };
 

@@ -3,7 +3,6 @@
 //! Handles the legacy Facebook Messenger export format, including
 //! encoding fixes and thread import functionality.
 
-use std::collections::HashMap;
 use std::io::Read;
 
 use anyhow::{Context, Result};
@@ -39,59 +38,47 @@ pub fn import_facebook_archive<R: std::io::Seek + std::io::Read>(
             .with_context(|| format!("parsing {}", json_path))?;
         let parsed = crate::importers::messenger::utils::encoding::fix_encoding(parsed);
 
-        import_thread(
-            batch,
-            &mut state.user_ids,
-            &mut state.next_user_id,
-            &mut state.conv_ids,
-            &mut state.next_conv_id,
-            &mut state.next_msg_id,
-            &parsed,
-        )?;
+        import_thread(&parsed, batch, state)?;
     }
     Ok(())
 }
 
 /// Import a single Facebook Messenger thread.
 pub fn import_thread(
-    batch: &mut WriteBatch<'_>,
-    user_ids: &mut HashMap<String, i64>,
-    next_user_id: &mut i64,
-    conv_ids: &mut HashMap<String, i64>,
-    next_conv_id: &mut i64,
-    next_msg_id: &mut i64,
     parsed: &FacebookExportRoot,
+    batch: &mut WriteBatch<'_>,
+    state: &mut crate::importers::messenger::ImportState,
 ) -> Result<()> {
     // Ensure users (participants)
     for p in &parsed.participants {
-        if !user_ids.contains_key(&p.name) {
-            let id = *next_user_id;
-            *next_user_id += 1;
+        if !state.user_ids.contains_key(&p.name) {
+            let id = state.next_user_id;
+            state.next_user_id += 1;
             batch
                 .insert_user(Some(id), Some(&p.name), None)
                 .with_context(|| format!("inserting user: {}", p.name))?;
-            user_ids.insert(p.name.clone(), id);
+            state.user_ids.insert(p.name.clone(), id);
         }
     }
 
-    // Conversation per thread_path
-    let conv_key = parsed.thread_path.clone();
-    let conv_id = if let Some(&cid) = conv_ids.get(&conv_key) {
+    // Get canonical conversation key (considering merges)
+    let canonical_conv_key = state.get_conversation_key(&parsed.thread_path);
+    let conv_id = if let Some(&cid) = state.conv_ids.get(&canonical_conv_key) {
         cid
     } else {
-        let cid = *next_conv_id;
-        *next_conv_id += 1;
+        let cid = state.next_conv_id;
+        state.next_conv_id += 1;
         let ctype = if parsed.participants.len() == 2 {
             ConversationType::DM
         } else {
             ConversationType::Group
         };
         let image_uri = parsed.image.as_ref().map(|i| i.uri.as_str());
-        let title = Some(parsed.title.as_str());
+        let title = state.get_conversation_title(&parsed.thread_path, &parsed.title);
         batch
-            .insert_conversation(cid, ctype, image_uri, title)
-            .with_context(|| format!("insert conversation {} ({})", cid, conv_key))?;
-        conv_ids.insert(conv_key.clone(), cid);
+            .insert_conversation(cid, ctype, image_uri, Some(&title))
+            .with_context(|| format!("insert conversation {} ({})", cid, canonical_conv_key))?;
+        state.conv_ids.insert(canonical_conv_key.clone(), cid);
         cid
     };
 
@@ -102,15 +89,15 @@ pub fn import_thread(
         }
 
         // sender id
-        let sender_id = if let Some(&id) = user_ids.get(&m.sender_name) {
+        let sender_id = if let Some(&id) = state.user_ids.get(&m.sender_name) {
             id
         } else {
-            let id = *next_user_id;
-            *next_user_id += 1;
+            let id = state.next_user_id;
+            state.next_user_id += 1;
             batch
                 .insert_user(Some(id), Some(&m.sender_name), None)
                 .with_context(|| format!("inserting user: {}", m.sender_name))?;
-            user_ids.insert(m.sender_name.clone(), id);
+            state.user_ids.insert(m.sender_name.clone(), id);
             id
         };
 
@@ -167,8 +154,8 @@ pub fn import_thread(
         }
 
         // Create a single base message row.
-        let msg_id = *next_msg_id;
-        *next_msg_id += 1;
+        let msg_id = state.next_msg_id;
+        state.next_msg_id += 1;
         batch
             .insert_message(msg_id, sender_id, conv_id, sent_at)
             .with_context(|| format!("insert base msg {}", msg_id))?;
@@ -196,15 +183,15 @@ pub fn import_thread(
 
         if let (pid, Some(reactions)) = (msg_id, m.reactions.as_ref()) {
             for r in reactions {
-                let reactor_id = if let Some(&id) = user_ids.get(&r.actor) {
+                let reactor_id = if let Some(&id) = state.user_ids.get(&r.actor) {
                     id
                 } else {
-                    let id = *next_user_id;
-                    *next_user_id += 1;
+                    let id = state.next_user_id;
+                    state.next_user_id += 1;
                     batch
                         .insert_user(Some(id), Some(&r.actor), None)
                         .with_context(|| format!("inserting user: {}", r.actor))?;
-                    user_ids.insert(r.actor.clone(), id);
+                    state.user_ids.insert(r.actor.clone(), id);
                     id
                 };
                 batch
