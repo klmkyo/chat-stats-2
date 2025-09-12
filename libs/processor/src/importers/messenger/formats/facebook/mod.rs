@@ -4,12 +4,14 @@
 //! encoding fixes and thread import functionality.
 
 use std::io::Read;
+use std::path::PathBuf;
 
 use anyhow::{Context, Result};
 use serde_json;
 use zip::ZipArchive;
 
-use crate::database::{ConversationType, WriteBatch};
+use crate::database::WriteBatch;
+use crate::importers::messenger::utils::{upsert_conversation, upsert_user};
 use crate::importers::messenger::ImportState;
 
 pub mod json;
@@ -38,47 +40,44 @@ pub fn import_facebook_archive<R: std::io::Seek + std::io::Read>(
             .with_context(|| format!("parsing {}", json_path))?;
         let parsed = crate::importers::messenger::utils::encoding::fix_encoding(parsed);
 
-        import_thread(&parsed, batch, state)?;
+        let path: PathBuf = json_path.into();
+        let folder_name_cow = path
+            .parent()
+            .unwrap()
+            .file_name()
+            .unwrap()
+            .to_string_lossy();
+
+        let folder_name = folder_name_cow.as_ref();
+
+        import_thread(folder_name, &parsed, batch, state)?;
     }
     Ok(())
 }
 
 /// Import a single Facebook Messenger thread.
 pub fn import_thread(
+    folder_name: &str,
     parsed: &FacebookExportRoot,
     batch: &mut WriteBatch<'_>,
     state: &mut crate::importers::messenger::ImportState,
 ) -> Result<()> {
     // Ensure users (participants)
     for p in &parsed.participants {
-        if !state.user_ids.contains_key(&p.name) {
-            let id = state.next_user_id;
-            state.next_user_id += 1;
-            batch
-                .insert_user(Some(id), Some(&p.name), None)
-                .with_context(|| format!("inserting user: {}", p.name))?;
-            state.user_ids.insert(p.name.clone(), id);
-        }
+        upsert_user(batch, state, p.name.as_str())?;
     }
 
     // Create conversation with Facebook export source
-    let conv_id = state.next_conv_id;
-    state.next_conv_id += 1;
-    let ctype = if parsed.participants.len() == 2 {
-        ConversationType::DM
-    } else {
-        ConversationType::Group
-    };
     let image_uri = parsed.image.as_ref().map(|i| i.uri.as_str());
-    batch
-        .insert_conversation(
-            conv_id,
-            ctype,
-            image_uri,
-            Some(&parsed.title),
-            "messenger:facebook",
-        )
-        .with_context(|| format!("insert conversation {}", conv_id))?;
+    let conv_id = upsert_conversation(
+        batch,
+        state,
+        folder_name,
+        parsed.participants.len(),
+        image_uri,
+        Some(&parsed.title),
+        "messenger:facebook",
+    )?;
 
     // Messages
     for m in parsed.messages.iter().rev() {
@@ -87,17 +86,7 @@ pub fn import_thread(
         }
 
         // sender id
-        let sender_id = if let Some(&id) = state.user_ids.get(&m.sender_name) {
-            id
-        } else {
-            let id = state.next_user_id;
-            state.next_user_id += 1;
-            batch
-                .insert_user(Some(id), Some(&m.sender_name), None)
-                .with_context(|| format!("inserting user: {}", m.sender_name))?;
-            state.user_ids.insert(m.sender_name.clone(), id);
-            id
-        };
+        let sender_id = upsert_user(batch, state, &m.sender_name)?;
 
         let sent_at = m.timestamp_ms / 1000;
 
@@ -156,7 +145,7 @@ pub fn import_thread(
         state.next_msg_id += 1;
         batch
             .insert_message(msg_id, sender_id, conv_id, sent_at)
-            .with_context(|| format!("insert base msg {}", msg_id))?;
+            .with_context(|| format!("insert base msg {}, conv_id {}", msg_id, conv_id))?;
 
         // Attach all variants to this message.
         for v in variants.iter() {
@@ -181,17 +170,7 @@ pub fn import_thread(
 
         if let (pid, Some(reactions)) = (msg_id, m.reactions.as_ref()) {
             for r in reactions {
-                let reactor_id = if let Some(&id) = state.user_ids.get(&r.actor) {
-                    id
-                } else {
-                    let id = state.next_user_id;
-                    state.next_user_id += 1;
-                    batch
-                        .insert_user(Some(id), Some(&r.actor), None)
-                        .with_context(|| format!("inserting user: {}", r.actor))?;
-                    state.user_ids.insert(r.actor.clone(), id);
-                    id
-                };
+                let reactor_id = upsert_user(batch, state, &r.actor)?;
                 batch
                     .insert_reaction(reactor_id, pid, &r.reaction)
                     .with_context(|| format!("insert reaction on msg {}", pid))?;

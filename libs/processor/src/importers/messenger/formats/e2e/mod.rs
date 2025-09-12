@@ -3,8 +3,9 @@
 //! Handles the newer Facebook Messenger end-to-end encrypted export format,
 //! which uses a different structure and JSON schema than the legacy format.
 
+use crate::importers::messenger::utils::{upsert_conversation, upsert_user};
 use crate::{
-    database::{ConversationType, WriteBatch},
+    database::WriteBatch,
     importers::messenger::formats::e2e::json::E2eExportRoot,
     importers::messenger::ImportState,
 };
@@ -83,33 +84,27 @@ pub fn import_e2e_json(
 
     // Ensure users
     for name in &parsed.participants {
-        if !state.user_ids.contains_key(name) {
-            let id = state.next_user_id;
-            state.next_user_id += 1;
-            batch
-                .insert_user(Some(id), Some(name), None)
-                .with_context(|| format!("inserting user: {}", name))?;
-            state.user_ids.insert(name.clone(), id);
-        }
+        upsert_user(batch, state, name)?;
     }
 
     // Create conversation with E2E export source
-    let conv_id = state.next_conv_id;
-    state.next_conv_id += 1;
-    let ctype = if parsed.participants.len() == 2 {
-        ConversationType::DM
-    } else {
-        ConversationType::Group
-    };
-    batch
-        .insert_conversation(
-            conv_id,
-            ctype,
-            None,
-            Some(&parsed.thread_name),
-            "messenger:e2e",
-        )
-        .with_context(|| format!("insert conversation {}", conv_id))?;
+    // Thread names have the "Name Surname_X" format, where X is some number. We want
+    // to remove the _X.
+    let thread_name = parsed
+        .thread_name
+        .split('_')
+        .next()
+        .unwrap_or(&parsed.thread_name);
+
+    let conv_id = upsert_conversation(
+        batch,
+        state,
+        &parsed.thread_name,
+        parsed.participants.len(),
+        None,
+        Some(thread_name),
+        "messenger:e2e",
+    )?;
 
     // Collect audio URIs (if we can probe durations from zip)
     let mut audio_uris: Vec<String> = Vec::new();
@@ -127,17 +122,7 @@ pub fn import_e2e_json(
         }
 
         // Sender
-        let sender_id = if let Some(&id) = state.user_ids.get(&m.sender_name) {
-            id
-        } else {
-            let id = state.next_user_id;
-            state.next_user_id += 1;
-            batch
-                .insert_user(Some(id), Some(&m.sender_name), None)
-                .with_context(|| format!("inserting user: {}", m.sender_name))?;
-            state.user_ids.insert(m.sender_name.clone(), id);
-            id
-        };
+        let sender_id = upsert_user(batch, state, &m.sender_name)?;
 
         // Timestamp: detect seconds vs ms
         let mut sent_at = m.timestamp;
@@ -183,17 +168,7 @@ pub fn import_e2e_json(
         }
 
         for r in m.reactions {
-            let reactor_id = if let Some(&id) = state.user_ids.get(&r.actor) {
-                id
-            } else {
-                let id = state.next_user_id;
-                state.next_user_id += 1;
-                batch
-                    .insert_user(Some(id), Some(&r.actor), None)
-                    .with_context(|| format!("inserting user: {}", r.actor))?;
-                state.user_ids.insert(r.actor.clone(), id);
-                id
-            };
+            let reactor_id = upsert_user(batch, state, &r.actor)?;
             batch
                 .insert_reaction(reactor_id, msg_id, &r.reaction)
                 .context("insert reaction")?;
