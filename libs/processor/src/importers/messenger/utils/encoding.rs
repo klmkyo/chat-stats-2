@@ -1,4 +1,4 @@
-use crate::adapters::messenger::export::facebook::json::FacebookExportRoot;
+use crate::importers::messenger::formats::facebook::json::FacebookExportRoot;
 
 /// Interpret a Unicode string as if each character were a single ISO-8859-1 byte,
 /// then decode those bytes as UTF-8. This reverses typical "Ã©"-style mojibake.
@@ -11,8 +11,10 @@ fn fix_latin1_mojibake(s: &str) -> String {
     }
 }
 
-/// Recursively fix mojibake across the parsed Messenger structures.
-pub fn fix_messenger_encoding(mut root: FacebookExportRoot) -> FacebookExportRoot {
+/// Fix encoding issues in Facebook Messenger exports.
+///
+/// Recursively fixes mojibake across the parsed Messenger structures.
+pub fn fix_encoding(mut root: FacebookExportRoot) -> FacebookExportRoot {
     // Top-level fields
     root.title = fix_latin1_mojibake(&root.title);
     root.thread_path = fix_latin1_mojibake(&root.thread_path);

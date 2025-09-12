@@ -35,7 +35,7 @@ fn main() {
             if db.exists() {
                 let _ = std::fs::remove_file(&db);
             }
-            match processor::adapters::messenger::import_mixed_inputs_to_sqlite(files, &db) {
+            match processor::importers::messenger::import_to_database(files, &db) {
                 Ok(()) => println!("Imported into DB: {}", db.display()),
                 Err(e) => {
                     eprintln!("Import failed: {}", e);

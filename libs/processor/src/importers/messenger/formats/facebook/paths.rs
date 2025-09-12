@@ -1,8 +1,14 @@
-use ::zip::read::ZipArchive;
+//! Facebook Messenger path parsing and ZIP entry handling.
+//!
+//! Contains Facebook-specific utilities for parsing message file paths
+//! and organizing ZIP archive entries by conversation threads.
+
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::io::{Read, Seek};
+use zip::read::ZipArchive;
 
+/// Facebook Messenger export directory names.
 pub const DIRECTORIES: [&str; 4] = [
     "inbox",
     "e2ee_cutover",
@@ -10,6 +16,7 @@ pub const DIRECTORIES: [&str; 4] = [
     "message_requests",
 ];
 
+/// Regex pattern for matching Facebook Messenger JSON message files.
 pub static MESSAGES_RE: Lazy<Regex> = Lazy::new(|| {
     let pattern = format!(
         r"^your_facebook_activity/messages/({})/([^/]+)/message_\d+\.json$",
@@ -18,6 +25,7 @@ pub static MESSAGES_RE: Lazy<Regex> = Lazy::new(|| {
     Regex::new(&pattern).expect("valid regex")
 });
 
+/// Parse the message number from a Facebook message file path.
 fn parse_message_number_from_path(path: &str) -> i64 {
     path.rsplit_once("message_")
         .and_then(|(_, rest)| rest.strip_suffix(".json"))
@@ -25,7 +33,11 @@ fn parse_message_number_from_path(path: &str) -> i64 {
         .unwrap_or(0)
 }
 
-pub fn collect_sorted_message_entries<R: Seek + Read>(
+/// Collect and sort Facebook message entries from a ZIP archive.
+/// 
+/// Returns a sorted list of (thread_directory, message_number, full_path) tuples.
+/// Entries are sorted first by thread directory name, then by message number.
+pub fn collect_message_entries<R: Seek + Read>(
     archive: &ZipArchive<R>,
     re: &Regex,
 ) -> Vec<(String, i64, String)> {
@@ -44,4 +56,3 @@ pub fn collect_sorted_message_entries<R: Seek + Read>(
 
     entries
 }
-

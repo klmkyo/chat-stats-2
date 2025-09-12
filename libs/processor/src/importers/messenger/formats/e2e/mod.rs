@@ -1,15 +1,21 @@
+//! End-to-End (E2E) Messenger export format parser.
+//!
+//! Handles the newer Facebook Messenger end-to-end encrypted export format,
+//! which uses a different structure and JSON schema than the legacy format.
+
 use crate::{
-    adapters::messenger::ImportState,
-    artifact::schema::{ConversationType, WriteBatch},
+    database::{ConversationType, WriteBatch},
+    importers::messenger::formats::e2e::json::E2eExportRoot,
+    importers::messenger::ImportState,
 };
-use ::zip::read::ZipArchive;
 use anyhow::{Context, Result};
-use json::Root as E2eRoot;
 use std::io::{Read, Seek};
+use zip::read::ZipArchive;
+
 pub mod json;
 
 /// Detect if a ZIP archive is the new E2E format: root contains json files and a `media/` dir.
-pub fn is_e2e_zip<R: Seek + Read>(archive: &ZipArchive<R>) -> bool {
+pub fn is_e2e_archive<R: Seek + Read>(archive: &ZipArchive<R>) -> bool {
     let mut has_media = false;
     let mut has_root_json = false;
     for name in archive.file_names() {
@@ -26,8 +32,8 @@ pub fn is_e2e_zip<R: Seek + Read>(archive: &ZipArchive<R>) -> bool {
     false
 }
 
-/// Import an E2E-format ZIP archive into the given batch/state.
-pub fn import_e2e_zip_into_batch<R: Seek + Read>(
+/// Import an E2E-format ZIP archive.
+pub fn import_e2e_archive<R: Seek + Read>(
     archive: &mut ZipArchive<R>,
     batch: &mut WriteBatch<'_>,
     state: &mut ImportState,
@@ -47,7 +53,7 @@ pub fn import_e2e_zip_into_batch<R: Seek + Read>(
         f.read_to_string(&mut json_content)
             .with_context(|| format!("read {}", json_path))?;
 
-        import_e2e_json_str_into_batch(&json_content, batch, state)?;
+        import_e2e_json(&json_content, batch, state)?;
     }
     Ok(())
 }
@@ -67,13 +73,13 @@ fn classify_media(uri: &str) -> &'static str {
     }
 }
 
-/// Import a single E2E JSON content. If provided, uses the given ZIP archive to probe audio length.
-pub fn import_e2e_json_str_into_batch(
+/// Import a single E2E JSON content.
+pub fn import_e2e_json(
     json_content: &str,
     batch: &mut WriteBatch<'_>,
     state: &mut ImportState,
 ) -> Result<()> {
-    let parsed: E2eRoot = serde_json::from_str(json_content).context("parsing e2e json")?;
+    let parsed: E2eExportRoot = serde_json::from_str(json_content).context("parsing e2e json")?;
 
     // Ensure users
     for name in &parsed.participants {
@@ -95,7 +101,7 @@ pub fn import_e2e_json_str_into_batch(
         let cid = state.next_conv_id;
         state.next_conv_id += 1;
         let ctype = if parsed.participants.len() == 2 {
-            ConversationType::Dm
+            ConversationType::DM
         } else {
             ConversationType::Group
         };

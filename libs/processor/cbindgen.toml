@@ -7,9 +7,9 @@ line_length = 100
 
 [export]
 include = [
-  "rust_zip_list_fd",
-  "rust_zip_list_path",
-  "rust_string_free",
+  "processor_import_file",
+  "processor_list_archive_contents",
+  "processor_string_free",
 ]
 
 [parse]

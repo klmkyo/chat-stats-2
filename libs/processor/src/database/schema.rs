@@ -18,13 +18,14 @@ pub struct WriteBatch<'c> {
 
 #[derive(Clone, Copy, Debug)]
 pub enum ConversationType {
-    Dm,
+    DM,
     Group,
 }
+
 impl ConversationType {
     fn as_str(self) -> &'static str {
         match self {
-            ConversationType::Dm => "dm",
+            ConversationType::DM => "dm",
             ConversationType::Group => "group",
         }
     }
@@ -48,13 +49,13 @@ impl MessageDb {
             .with_context(|| format!("opening sqlite db at {}", path.display()))?;
 
         // Pragmas tuned for on-device analytics: many reads, occasional writes.
-        conn.pragma_update(None, "journal_mode", &"WAL")
+        conn.pragma_update(None, "journal_mode", "WAL")
             .context("setting PRAGMA journal_mode=WAL")?;
-        conn.pragma_update(None, "synchronous", &"NORMAL")
+        conn.pragma_update(None, "synchronous", "NORMAL")
             .context("setting PRAGMA synchronous=NORMAL")?;
-        conn.pragma_update(None, "foreign_keys", &"ON")
+        conn.pragma_update(None, "foreign_keys", "ON")
             .context("enabling foreign_keys")?;
-        conn.pragma_update(None, "busy_timeout", &5000_i64)
+        conn.pragma_update(None, "busy_timeout", 5000_i64)
             .context("setting PRAGMA busy_timeout=5000")?;
 
         Self::apply_migrations(&mut conn).context("applying migrations")?;

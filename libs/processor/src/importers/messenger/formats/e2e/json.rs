@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Root {
+pub struct E2eExportRoot {
     pub participants: Vec<String>,
     #[serde(rename = "threadName")]
     pub thread_name: String,

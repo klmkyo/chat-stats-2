@@ -1,24 +1,31 @@
+//! Facebook Messenger export format parser.
+//!
+//! Handles the legacy Facebook Messenger export format, including
+//! encoding fixes and thread import functionality.
+
 use std::collections::HashMap;
 use std::io::Read;
 
-use crate::adapters::messenger::export::facebook::json::FacebookExportRoot;
-use crate::adapters::messenger::helpers;
-use crate::adapters::messenger::ImportState;
-use crate::artifact::schema::ConversationType;
-use crate::artifact::schema::WriteBatch;
 use anyhow::{Context, Result};
 use serde_json;
 use zip::ZipArchive;
 
-pub mod json;
+use crate::database::{ConversationType, WriteBatch};
+use crate::importers::messenger::ImportState;
 
-pub fn import_facebook_zip_archive_into_batch<R: std::io::Seek + std::io::Read>(
+pub mod json;
+pub mod paths;
+
+use json::FacebookExportRoot;
+
+/// Import a Facebook Messenger ZIP archive.
+pub fn import_facebook_archive<R: std::io::Seek + std::io::Read>(
     archive: &mut ZipArchive<R>,
     batch: &mut WriteBatch<'_>,
     state: &mut ImportState,
 ) -> Result<()> {
-    let is_messages_re = &helpers::paths::MESSAGES_RE;
-    let entries = helpers::paths::collect_sorted_message_entries(&archive, &*is_messages_re);
+    let is_messages_re = &paths::MESSAGES_RE;
+    let entries = paths::collect_message_entries(archive, is_messages_re);
     for (_thread_dir, _num, json_path) in entries.into_iter() {
         let mut file = archive
             .by_name(&json_path)
@@ -30,9 +37,9 @@ pub fn import_facebook_zip_archive_into_batch<R: std::io::Seek + std::io::Read>(
 
         let parsed: FacebookExportRoot = serde_json::from_str(&json_content)
             .with_context(|| format!("parsing {}", json_path))?;
-        let parsed = helpers::encoding::fix_messenger_encoding(parsed);
+        let parsed = crate::importers::messenger::utils::encoding::fix_encoding(parsed);
 
-        import_thread_into_batch(
+        import_thread(
             batch,
             &mut state.user_ids,
             &mut state.next_user_id,
@@ -45,7 +52,8 @@ pub fn import_facebook_zip_archive_into_batch<R: std::io::Seek + std::io::Read>(
     Ok(())
 }
 
-pub fn import_thread_into_batch(
+/// Import a single Facebook Messenger thread.
+pub fn import_thread(
     batch: &mut WriteBatch<'_>,
     user_ids: &mut HashMap<String, i64>,
     next_user_id: &mut i64,
@@ -74,7 +82,7 @@ pub fn import_thread_into_batch(
         let cid = *next_conv_id;
         *next_conv_id += 1;
         let ctype = if parsed.participants.len() == 2 {
-            ConversationType::Dm
+            ConversationType::DM
         } else {
             ConversationType::Group
         };
