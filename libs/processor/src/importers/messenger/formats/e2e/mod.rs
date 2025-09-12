@@ -94,23 +94,22 @@ pub fn import_e2e_json(
     }
 
     // Create conversation with E2E export source
-    let conv_key = parsed.thread_name.clone();
-    let conv_id = if let Some(&cid) = state.conv_ids.get(&conv_key) {
-        cid
+    let conv_id = state.next_conv_id;
+    state.next_conv_id += 1;
+    let ctype = if parsed.participants.len() == 2 {
+        ConversationType::DM
     } else {
-        let cid = state.next_conv_id;
-        state.next_conv_id += 1;
-        let ctype = if parsed.participants.len() == 2 {
-            ConversationType::DM
-        } else {
-            ConversationType::Group
-        };
-        batch
-            .insert_conversation(cid, ctype, None, Some(&parsed.thread_name), "messenger:e2e")
-            .with_context(|| format!("insert conversation {} ({})", cid, conv_key))?;
-        state.conv_ids.insert(conv_key.clone(), cid);
-        cid
+        ConversationType::Group
     };
+    batch
+        .insert_conversation(
+            conv_id,
+            ctype,
+            None,
+            Some(&parsed.thread_name),
+            "messenger:e2e",
+        )
+        .with_context(|| format!("insert conversation {}", conv_id))?;
 
     // Collect audio URIs (if we can probe durations from zip)
     let mut audio_uris: Vec<String> = Vec::new();

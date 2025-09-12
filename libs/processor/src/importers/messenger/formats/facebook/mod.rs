@@ -62,30 +62,23 @@ pub fn import_thread(
     }
 
     // Create conversation with Facebook export source
-    let conv_key = parsed.thread_path.clone();
-    let conv_id = if let Some(&cid) = state.conv_ids.get(&conv_key) {
-        cid
+    let conv_id = state.next_conv_id;
+    state.next_conv_id += 1;
+    let ctype = if parsed.participants.len() == 2 {
+        ConversationType::DM
     } else {
-        let cid = state.next_conv_id;
-        state.next_conv_id += 1;
-        let ctype = if parsed.participants.len() == 2 {
-            ConversationType::DM
-        } else {
-            ConversationType::Group
-        };
-        let image_uri = parsed.image.as_ref().map(|i| i.uri.as_str());
-        batch
-            .insert_conversation(
-                cid,
-                ctype,
-                image_uri,
-                Some(&parsed.title),
-                "messenger:facebook",
-            )
-            .with_context(|| format!("insert conversation {} ({})", cid, conv_key))?;
-        state.conv_ids.insert(conv_key.clone(), cid);
-        cid
+        ConversationType::Group
     };
+    let image_uri = parsed.image.as_ref().map(|i| i.uri.as_str());
+    batch
+        .insert_conversation(
+            conv_id,
+            ctype,
+            image_uri,
+            Some(&parsed.title),
+            "messenger:facebook",
+        )
+        .with_context(|| format!("insert conversation {}", conv_id))?;
 
     // Messages
     for m in parsed.messages.iter().rev() {

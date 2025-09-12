@@ -22,7 +22,6 @@ pub mod utils;
 /// Importer state shared across multiple files/zips in a run.
 pub struct ImportState {
     pub user_ids: HashMap<String, i64>,
-    pub conv_ids: HashMap<String, i64>,
     pub next_user_id: i64,
     pub next_conv_id: i64,
     pub next_msg_id: i64,
@@ -38,7 +37,6 @@ impl ImportState {
     pub fn new() -> Self {
         Self {
             user_ids: HashMap::new(),
-            conv_ids: HashMap::new(),
             next_user_id: 1,
             next_conv_id: 1,
             next_msg_id: 1,
