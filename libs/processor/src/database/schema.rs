@@ -182,15 +182,18 @@ impl<'c> WriteBatch<'c> {
         name: Option<&str>,
         avatar_uri: Option<&str>,
     ) -> Result<()> {
+        let tx = self.tx.as_mut().unwrap();
         match id {
-            Some(id) => self.tx.as_ref().unwrap().execute(
-                "INSERT INTO user(id, name, avatar_uri) VALUES (?1, ?2, ?3)",
-                params![id, name, avatar_uri],
-            )?,
-            None => self.tx.as_ref().unwrap().execute(
-                "INSERT INTO user(name, avatar_uri) VALUES (?1, ?2)",
-                params![name, avatar_uri],
-            )?,
+            Some(id) => {
+                let mut stmt = tx
+                    .prepare_cached("INSERT INTO user(id, name, avatar_uri) VALUES (?1, ?2, ?3)")?;
+                stmt.execute(params![id, name, avatar_uri])?;
+            }
+            None => {
+                let mut stmt =
+                    tx.prepare_cached("INSERT INTO user(name, avatar_uri) VALUES (?1, ?2)")?;
+                stmt.execute(params![name, avatar_uri])?;
+            }
         };
         Ok(())
     }
@@ -204,10 +207,11 @@ impl<'c> WriteBatch<'c> {
         name: Option<&str>,
         export_source: &str,
     ) -> Result<()> {
-        self.tx.as_ref().unwrap().execute(
+        let tx = self.tx.as_mut().unwrap();
+        let mut stmt = tx.prepare_cached(
             "INSERT INTO conversation(id, type, image_uri, name, export_source) VALUES (?1, ?2, ?3, ?4, ?5)",
-            params![id, ctype.as_str(), image_uri, name, export_source],
         )?;
+        stmt.execute(params![id, ctype.as_str(), image_uri, name, export_source])?;
         Ok(())
     }
 
@@ -219,47 +223,48 @@ impl<'c> WriteBatch<'c> {
         conversation_id: i64,
         sent_at_epoch: i64,
     ) -> Result<()> {
-        self.tx.as_ref().unwrap().execute(
+        let tx = self.tx.as_mut().unwrap();
+        let mut stmt = tx.prepare_cached(
             "INSERT INTO message(id, sender, conversation, sent_at)
              VALUES (?1, ?2, ?3, ?4)",
-            params![id, sender_id, conversation_id, sent_at_epoch],
         )?;
+        stmt.execute(params![id, sender_id, conversation_id, sent_at_epoch])?;
         Ok(())
     }
 
     /// Add text content to an existing message.
     pub fn add_message_text(&mut self, message_id: i64, text: &str) -> Result<()> {
-        self.tx.as_ref().unwrap().execute(
-            "INSERT INTO message_text(message_id, text) VALUES (?1, ?2)",
-            params![message_id, text],
-        )?;
+        let tx = self.tx.as_mut().unwrap();
+        let mut stmt =
+            tx.prepare_cached("INSERT INTO message_text(message_id, text) VALUES (?1, ?2)")?;
+        stmt.execute(params![message_id, text])?;
         Ok(())
     }
 
     /// Add an image attachment to an existing message.
     pub fn add_message_image(&mut self, message_id: i64, image_uri: &str) -> Result<()> {
-        self.tx.as_ref().unwrap().execute(
-            "INSERT INTO message_image(message_id, image_uri) VALUES (?1, ?2)",
-            params![message_id, image_uri],
-        )?;
+        let tx = self.tx.as_mut().unwrap();
+        let mut stmt =
+            tx.prepare_cached("INSERT INTO message_image(message_id, image_uri) VALUES (?1, ?2)")?;
+        stmt.execute(params![message_id, image_uri])?;
         Ok(())
     }
 
     /// Add a video attachment to an existing message.
     pub fn add_message_video(&mut self, message_id: i64, video_uri: &str) -> Result<()> {
-        self.tx.as_ref().unwrap().execute(
-            "INSERT INTO message_video(message_id, video_uri) VALUES (?1, ?2)",
-            params![message_id, video_uri],
-        )?;
+        let tx = self.tx.as_mut().unwrap();
+        let mut stmt =
+            tx.prepare_cached("INSERT INTO message_video(message_id, video_uri) VALUES (?1, ?2)")?;
+        stmt.execute(params![message_id, video_uri])?;
         Ok(())
     }
 
     /// Add a GIF attachment to an existing message.
     pub fn add_message_gif(&mut self, message_id: i64, gif_uri: &str) -> Result<()> {
-        self.tx.as_ref().unwrap().execute(
-            "INSERT INTO message_gif(message_id, gif_uri) VALUES (?1, ?2)",
-            params![message_id, gif_uri],
-        )?;
+        let tx = self.tx.as_mut().unwrap();
+        let mut stmt =
+            tx.prepare_cached("INSERT INTO message_gif(message_id, gif_uri) VALUES (?1, ?2)")?;
+        stmt.execute(params![message_id, gif_uri])?;
         Ok(())
     }
 
@@ -270,11 +275,12 @@ impl<'c> WriteBatch<'c> {
         audio_uri: &str,
         length_seconds: Option<i64>,
     ) -> Result<()> {
-        self.tx.as_ref().unwrap().execute(
+        let tx = self.tx.as_mut().unwrap();
+        let mut stmt = tx.prepare_cached(
             "INSERT INTO message_audio(message_id, audio_uri, length_seconds)
              VALUES (?1, ?2, ?3)",
-            params![message_id, audio_uri, length_seconds],
         )?;
+        stmt.execute(params![message_id, audio_uri, length_seconds])?;
         Ok(())
     }
 
@@ -285,11 +291,12 @@ impl<'c> WriteBatch<'c> {
         message_id: i64,
         reaction: &str,
     ) -> Result<()> {
-        self.tx.as_ref().unwrap().execute(
+        let tx = self.tx.as_mut().unwrap();
+        let mut stmt = tx.prepare_cached(
             "INSERT INTO reaction(reactor_id, message_id, reaction)
              VALUES (?1, ?2, ?3)",
-            params![reactor_id, message_id, reaction],
         )?;
+        stmt.execute(params![reactor_id, message_id, reaction])?;
         Ok(())
     }
 
@@ -300,11 +307,12 @@ impl<'c> WriteBatch<'c> {
         sender_id: i64,
         conversation_id: i64,
     ) -> Result<()> {
-        self.tx.as_ref().unwrap().execute(
+        let tx = self.tx.as_mut().unwrap();
+        let mut stmt = tx.prepare_cached(
             "INSERT INTO message(id, sender, conversation, sent_at)
              VALUES (?1, ?2, ?3, unixepoch('now'))",
-            params![id, sender_id, conversation_id],
         )?;
+        stmt.execute(params![id, sender_id, conversation_id])?;
         Ok(())
     }
 }
