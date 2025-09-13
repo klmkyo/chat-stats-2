@@ -94,6 +94,31 @@ mod tests {
         let result = detect_duration_seconds("test.mp3", &mut cursor);
         assert_eq!(result, None);
     }
+
+    #[test]
+    fn test_mp4_mislabeled_fixture_sniff() {
+        // Only run if the fixture exists
+        let p = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/test-audio/messenger/audio_clip_824795835818430.wav");
+        if !p.exists() { return; }
+        let data = std::fs::read(&p).unwrap();
+        // Force sniff path
+        let mut cursor = Cursor::new(data);
+        let dur = detect_duration_seconds("file.bin", &mut cursor);
+        if dur.is_none() {
+            // Drill down: ensure we can find moov and mvhd
+            let buf = std::fs::read(&p).unwrap();
+            let sniff = sniff_and_parse(&buf);
+            assert!(sniff.is_some(), "sniff_and_parse returned None");
+            assert!(sniff.unwrap() > 1.0, "sniff duration too small");
+            let moov = find_box_anywhere(&buf, b"moov");
+            assert!(moov.is_some(), "no moov in file");
+            let (ms, me) = moov.unwrap();
+            let d2 = parse_moov_for_duration(&buf[ms..me]);
+            assert!(d2.is_some(), "no duration from moov");
+        }
+        assert!(dur.is_some(), "expected duration, got None for {:?}", p);
+    }
 }
 
 // ------------------
@@ -236,97 +261,64 @@ fn parse_mp4_duration(buf: &[u8]) -> Option<f64> {
                 return None;
             }
             if let Some(s) = parse_moov_for_duration(&buf[start..end]) {
+                // If moov-derived duration looks implausibly small (e.g., fragmented case),
+                // fallback to sidx-derived duration if available.
+                if s <= 1.0 {
+                    if let Some(s_sidx) = parse_sidx_total_duration(buf) { return Some(s_sidx); }
+                }
                 return Some(s);
             } else {
+                // Try sidx as last resort
+                if let Some(s_sidx) = parse_sidx_total_duration(buf) { return Some(s_sidx); }
                 return None;
             }
         }
 
         pos = (pos as u64 + box_size) as usize;
     }
+    // Fallback: scan for a 'moov' box anywhere in the file
+    if let Some((start, end)) = find_box_anywhere(buf, b"moov") {
+        if let Some(s) = parse_moov_for_duration(&buf[start..end]) { return Some(s); }
+    }
+    // Final fallback: single sidx box total duration
+    if let Some(s_sidx) = parse_sidx_total_duration(buf) { return Some(s_sidx); }
     None
 }
 
 fn parse_moov_for_duration(moov: &[u8]) -> Option<f64> {
-    // First prefer mvhd
-    let mut pos = 0usize;
-    while pos + 8 <= moov.len() {
-        let size =
-            u32::from_be_bytes([moov[pos], moov[pos + 1], moov[pos + 2], moov[pos + 3]]) as u64;
-        let typ = &moov[pos + 4..pos + 8];
-        let mut box_size = size;
-        let mut header = 8usize;
-        if size == 1 {
-            if pos + 16 > moov.len() {
-                return None;
-            }
-            box_size = u64::from_be_bytes([
-                moov[pos + 8],
-                moov[pos + 9],
-                moov[pos + 10],
-                moov[pos + 11],
-                moov[pos + 12],
-                moov[pos + 13],
-                moov[pos + 14],
-                moov[pos + 15],
-            ]);
-            header = 16;
-        } else if size == 0 {
-            box_size = (moov.len() - pos) as u64;
+    // Try mvhd anywhere inside moov
+    let mut mvhd_timescale: Option<u32> = None;
+    if let Some((start, end)) = find_box_anywhere(moov, b"mvhd") {
+        if let Some(s) = parse_mvhd(&moov[start..end]) {
+            return Some(s);
         }
-        if box_size < header as u64 || (pos as u64 + box_size) as usize > moov.len() {
-            return None;
-        }
-
-        if typ == b"mvhd" {
-            let body = &moov[pos + header..(pos as u64 + box_size) as usize];
-            if let Some(s) = parse_mvhd(body) {
-                return Some(s);
-            }
-        }
-
-        pos = (pos as u64 + box_size) as usize;
+        mvhd_timescale = parse_mvhd_timescale(&moov[start..end]);
     }
 
-    // Fallback: find mdhd inside audio trak
-    // Iterate traks
-    pos = 0;
-    while pos + 8 <= moov.len() {
-        let size =
-            u32::from_be_bytes([moov[pos], moov[pos + 1], moov[pos + 2], moov[pos + 3]]) as u64;
-        let typ = &moov[pos + 4..pos + 8];
-        let mut box_size = size;
-        let mut header = 8usize;
-        if size == 1 {
-            if pos + 16 > moov.len() {
-                return None;
-            }
-            box_size = u64::from_be_bytes([
-                moov[pos + 8],
-                moov[pos + 9],
-                moov[pos + 10],
-                moov[pos + 11],
-                moov[pos + 12],
-                moov[pos + 13],
-                moov[pos + 14],
-                moov[pos + 15],
-            ]);
-            header = 16;
-        } else if size == 0 {
-            box_size = (moov.len() - pos) as u64;
-        }
-        if box_size < header as u64 || (pos as u64 + box_size) as usize > moov.len() {
-            return None;
-        }
-        if typ == b"trak" {
-            let trak_body = &moov[pos + header..(pos as u64 + box_size) as usize];
-            if let Some(s) = parse_trak_for_audio_mdhd(trak_body) {
-                return Some(s);
+    // If fragmented MP4: mvex/mehd may carry total fragment duration in movie timescale
+    if let (Some(ts), Some((ms, me))) = (mvhd_timescale, find_box_anywhere(moov, b"mehd")) {
+        if let Some(frags) = parse_mehd_duration(&moov[ms..me]) {
+            if ts > 0 && frags > 0 {
+                return Some(frags as f64 / ts as f64);
             }
         }
-        pos = (pos as u64 + box_size) as usize;
     }
 
+    // Scan each trak box and look for audio mdhd
+    let mut offset = 0usize;
+    while offset < moov.len() {
+        let sub = &moov[offset..];
+        if let Some((s, e)) = find_box_anywhere(sub, b"trak") {
+            let trak = &sub[s..e];
+            if let Some(s) = parse_trak_for_audio_mdhd(trak) {
+                return Some(s);
+            }
+            // advance past this trak
+            offset += e;
+        } else {
+            break;
+        }
+    }
     None
 }
 
@@ -478,6 +470,106 @@ fn parse_mdhd(body: &[u8]) -> Option<f64> {
         return None;
     }
     Some(duration as f64 / timescale as f64)
+}
+
+fn parse_mvhd_timescale(body: &[u8]) -> Option<u32> {
+    if body.len() < 16 { return None; }
+    let version = body[0];
+    if version == 1 {
+        if body.len() < 24 { return None; }
+        Some(u32::from_be_bytes([body[20], body[21], body[22], body[23]]))
+    } else {
+        Some(u32::from_be_bytes([body[12], body[13], body[14], body[15]]))
+    }
+}
+
+fn parse_mehd_duration(body: &[u8]) -> Option<u64> {
+    if body.len() < 8 { return None; }
+    let version = body[0];
+    if version == 1 {
+        if body.len() < 12 { return None; }
+        Some(u64::from_be_bytes([
+            body[4], body[5], body[6], body[7], body[8], body[9], body[10], body[11],
+        ]))
+    } else {
+        if body.len() < 8 { return None; }
+        Some(u32::from_be_bytes([body[4], body[5], body[6], body[7]]) as u64)
+    }
+}
+
+// Find a box by 4cc type anywhere by scanning for the type marker and reading size
+// immediately before it. Returns (payload_start, payload_end) within buf if found.
+fn find_box_anywhere(buf: &[u8], r#type: &[u8; 4]) -> Option<(usize, usize)> {
+    let mut i = 0usize;
+    while i + 8 <= buf.len() {
+        if &buf[i..i + 4] == r#type {
+            if i < 4 { return None; }
+            let pos = i - 4; // size field
+            if pos + 8 > buf.len() { return None; }
+            let size32 = u32::from_be_bytes([buf[pos], buf[pos + 1], buf[pos + 2], buf[pos + 3]]) as u64;
+            let (header, total) = if size32 == 1 {
+                if pos + 16 > buf.len() { return None; }
+                (16usize, u64::from_be_bytes([
+                    buf[pos + 8], buf[pos + 9], buf[pos + 10], buf[pos + 11], buf[pos + 12], buf[pos + 13],
+                    buf[pos + 14], buf[pos + 15],
+                ]))
+            } else if size32 == 0 {
+                (8usize, (buf.len() - pos) as u64)
+            } else {
+                (8usize, size32)
+            };
+            if total < header as u64 { return None; }
+            let start = pos + header;
+            let end = (pos as u64 + total) as usize;
+            if end > buf.len() { return None; }
+            return Some((start, end));
+        }
+        i += 1;
+    }
+    None
+}
+
+// Parse duration from the first sidx box: sum of subsegment_durations / timescale.
+fn parse_sidx_total_duration(buf: &[u8]) -> Option<f64> {
+    let (start, end) = find_box_anywhere(buf, b"sidx")?;
+    let body = &buf[start..end];
+    if body.len() < 12 { return None; }
+    let version = body[0];
+    // flags = body[1..4]
+    if body.len() < 16 { return None; }
+    let timescale = u32::from_be_bytes([body[8], body[9], body[10], body[11]]);
+    if timescale == 0 { return None; }
+    let mut off = 12usize;
+    // earliest_presentation_time & first_offset depend on version
+    if version == 0 {
+        if body.len() < off + 8 { return None; }
+        // skip 4 + 4
+        off += 8;
+    } else {
+        if body.len() < off + 16 { return None; }
+        off += 16;
+    }
+    if body.len() < off + 2 { return None; }
+    off += 2; // reserved
+    if body.len() < off + 2 { return None; }
+    let ref_count = u16::from_be_bytes([body[off], body[off + 1]]) as usize;
+    off += 2;
+    let mut total: u64 = 0;
+    for _ in 0..ref_count {
+        if body.len() < off + 12 { return None; }
+        let ref_type_size = u32::from_be_bytes([body[off], body[off + 1], body[off + 2], body[off + 3]]);
+        off += 4;
+        let sub_dur = u32::from_be_bytes([body[off], body[off + 1], body[off + 2], body[off + 3]]) as u64;
+        off += 4;
+        // SAP flags + time
+        off += 4;
+        // Only add if reference_type==0 (media data)
+        if (ref_type_size >> 31) == 0 {
+            total = total.saturating_add(sub_dur);
+        }
+    }
+    if total == 0 { return None; }
+    Some(total as f64 / timescale as f64)
 }
 
 // Ogg Opus duration: final granule - pre-skip at 48kHz

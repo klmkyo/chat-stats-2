@@ -24,3 +24,28 @@ fn audio_duration_messenger_mp4_fixture() {
     );
 }
 
+#[test]
+fn audio_duration_messenger_mislabeled_wav_fixture() {
+    // File extension is .wav but container is MP4/AAC; parser must sniff.
+    let path: PathBuf = [
+        env!("CARGO_MANIFEST_DIR"),
+        "tests",
+        "test-audio",
+        "messenger",
+        "audio_clip_824795835818430.wav",
+    ]
+    .iter()
+    .collect();
+
+    let data = std::fs::read(&path).expect("read mislabeled wav fixture");
+    let mut cursor = std::io::Cursor::new(data);
+    let dur = processor::utils::audio::detect_duration_seconds("file.bin", &mut cursor)
+        .expect("duration for mislabeled wav fixture");
+    // ffprobe reports 16.73s; our parser should round near 17
+    assert!(
+        (16..=18).contains(&dur),
+        "expected ~17s (rounded), got {} (path {:?})",
+        dur,
+        path
+    );
+}
