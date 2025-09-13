@@ -4,9 +4,9 @@
 //! which uses a different structure and JSON schema than the legacy format.
 
 use crate::importers::messenger::utils::{upsert_conversation, upsert_user};
+use crate::utils::audio::detect_duration_seconds;
 use crate::{
-    database::WriteBatch,
-    importers::messenger::formats::e2e::json::E2eExportRoot,
+    database::WriteBatch, importers::messenger::formats::e2e::json::E2eExportRoot,
     importers::messenger::ImportState,
 };
 use anyhow::{Context, Result};
@@ -47,14 +47,16 @@ pub fn import_e2e_archive<R: Seek + Read>(
         .collect();
 
     for json_path in root_jsons {
-        let mut f = archive
-            .by_name(&json_path)
-            .with_context(|| format!("open {}", json_path))?;
         let mut json_content = String::new();
-        f.read_to_string(&mut json_content)
-            .with_context(|| format!("read {}", json_path))?;
+        {
+            let mut f = archive
+                .by_name(&json_path)
+                .with_context(|| format!("open {}", json_path))?;
+            f.read_to_string(&mut json_content)
+                .with_context(|| format!("read {}", json_path))?;
+        }
 
-        import_e2e_json(&json_content, batch, state)?;
+        import_e2e_json(archive, &json_content, batch, state)?;
     }
     Ok(())
 }
@@ -75,7 +77,8 @@ fn classify_media(uri: &str) -> &'static str {
 }
 
 /// Import a single E2E JSON content.
-pub fn import_e2e_json(
+pub fn import_e2e_json<R: Seek + Read>(
+    archive: &mut ZipArchive<R>,
     json_content: &str,
     batch: &mut WriteBatch<'_>,
     state: &mut ImportState,
@@ -145,8 +148,12 @@ pub fn import_e2e_json(
         for media in m.media {
             match classify_media(&media.uri) {
                 "audio" => {
+                    let len_opt = match archive.by_name(&media.uri) {
+                        Ok(mut f) => detect_duration_seconds(&media.uri, &mut f),
+                        Err(_) => None,
+                    };
                     batch
-                        .add_message_audio(msg_id, &media.uri, None)
+                        .add_message_audio(msg_id, &media.uri, len_opt)
                         .context("attach audio")?;
                 }
                 "video" => {

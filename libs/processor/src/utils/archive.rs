@@ -2,8 +2,8 @@
 //!
 //! Common operations for working with ZIP archives across different importers.
 
-use std::io::{Read, Seek};
 use anyhow::Result;
+use std::io::{Read, Seek};
 use zip::ZipArchive;
 
 /// List all file names in a ZIP archive.
@@ -17,10 +17,7 @@ pub fn contains_file<R: Read + Seek>(archive: &ZipArchive<R>, filename: &str) ->
 }
 
 /// Check if a ZIP archive contains files matching a pattern.
-pub fn contains_files_matching<R: Read + Seek, F>(
-    archive: &ZipArchive<R>, 
-    predicate: F
-) -> bool 
+pub fn contains_files_matching<R: Read + Seek, F>(archive: &ZipArchive<R>, predicate: F) -> bool
 where
     F: Fn(&str) -> bool,
 {

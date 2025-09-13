@@ -13,6 +13,7 @@ use zip::ZipArchive;
 use crate::database::WriteBatch;
 use crate::importers::messenger::utils::{upsert_conversation, upsert_user};
 use crate::importers::messenger::ImportState;
+use crate::utils::audio::detect_duration_seconds;
 
 pub mod json;
 pub mod paths;
@@ -28,19 +29,20 @@ pub fn import_facebook_archive<R: std::io::Seek + std::io::Read>(
     let is_messages_re = &paths::MESSAGES_RE;
     let entries = paths::collect_message_entries(archive, is_messages_re);
     for (_thread_dir, _num, json_path) in entries.into_iter() {
-        let mut file = archive
-            .by_name(&json_path)
-            .with_context(|| format!("opening {}", json_path))?;
-
         let mut json_content = String::new();
-        file.read_to_string(&mut json_content)
-            .with_context(|| format!("reading {}", json_path))?;
+        {
+            let mut file = archive
+                .by_name(&json_path)
+                .with_context(|| format!("opening {}", json_path))?;
+            file.read_to_string(&mut json_content)
+                .with_context(|| format!("reading {}", json_path))?;
+        }
 
         let parsed: FacebookExportRoot = serde_json::from_str(&json_content)
             .with_context(|| format!("parsing {}", json_path))?;
         let parsed = crate::importers::messenger::utils::encoding::fix_encoding(parsed);
 
-        let path: PathBuf = json_path.into();
+        let path: PathBuf = json_path.clone().into();
         let folder_name_cow = path
             .parent()
             .unwrap()
@@ -49,15 +51,24 @@ pub fn import_facebook_archive<R: std::io::Seek + std::io::Read>(
             .to_string_lossy();
 
         let folder_name = folder_name_cow.as_ref();
-
-        import_thread(folder_name, &parsed, batch, state)?;
+        let thread_dir_path = path.parent().unwrap().to_string_lossy();
+        import_thread(
+            archive,
+            folder_name,
+            &thread_dir_path,
+            &parsed,
+            batch,
+            state,
+        )?;
     }
     Ok(())
 }
 
 /// Import a single Facebook Messenger thread.
-pub fn import_thread(
+pub fn import_thread<R: std::io::Seek + std::io::Read>(
+    archive: &mut ZipArchive<R>,
     folder_name: &str,
+    thread_dir_path: &str,
     parsed: &FacebookExportRoot,
     batch: &mut WriteBatch<'_>,
     state: &mut crate::importers::messenger::ImportState,
@@ -159,9 +170,25 @@ pub fn import_thread(
                 Variant::Gif(u) => batch
                     .add_message_gif(msg_id, u)
                     .with_context(|| format!("attach gif to msg {}", msg_id))?,
-                Variant::Audio(u) => batch
-                    .add_message_audio(msg_id, u, None)
-                    .with_context(|| format!("attach audio to msg {}", msg_id))?,
+                Variant::Audio(u) => {
+                    let mut len_opt = {
+                        if let Ok(mut f) = archive.by_name(u) {
+                            detect_duration_seconds(u, &mut f)
+                        } else {
+                            None
+                        }
+                    };
+                    if len_opt.is_none() {
+                        // Try relative to thread dir
+                        let candidate = format!("{}/{}", thread_dir_path, u);
+                        if let Ok(mut f2) = archive.by_name(&candidate) {
+                            len_opt = detect_duration_seconds(u, &mut f2);
+                        }
+                    }
+                    batch
+                        .add_message_audio(msg_id, u, len_opt)
+                        .with_context(|| format!("attach audio to msg {}", msg_id))?
+                }
                 Variant::Video(u) => batch
                     .add_message_video(msg_id, u)
                     .with_context(|| format!("attach video to msg {}", msg_id))?,

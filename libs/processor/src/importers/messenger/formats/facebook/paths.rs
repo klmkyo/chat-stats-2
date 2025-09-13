@@ -34,7 +34,7 @@ fn parse_message_number_from_path(path: &str) -> i64 {
 }
 
 /// Collect and sort Facebook message entries from a ZIP archive.
-/// 
+///
 /// Returns a sorted list of (thread_directory, message_number, full_path) tuples.
 /// Entries are sorted first by thread directory name, then by message number.
 pub fn collect_message_entries<R: Seek + Read>(
