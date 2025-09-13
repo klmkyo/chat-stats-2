@@ -40,6 +40,7 @@ pub fn detect_duration_seconds<R: Read + ?Sized>(path_hint: &str, reader: &mut R
     let mut seconds = match ext.as_deref() {
         Some("wav") => parse_wav_duration(&buf),
         Some("m4a") | Some("mp4") | Some("mov") => parse_mp4_duration(&buf),
+        Some("aac") => parse_aac_adts_duration(&buf),
         Some("mp3") => parse_mp3_duration(&buf),
         Some("opus") | Some("oga") | Some("ogg") => parse_ogg_opus_duration(&buf),
         _ => None,
@@ -100,7 +101,9 @@ mod tests {
         // Only run if the fixture exists
         let p = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("tests/test-audio/messenger/audio_clip_824795835818430.wav");
-        if !p.exists() { return; }
+        if !p.exists() {
+            return;
+        }
         let data = std::fs::read(&p).unwrap();
         // Force sniff path
         let mut cursor = Cursor::new(data);
@@ -142,6 +145,12 @@ fn sniff_and_parse(buf: &[u8]) -> Option<f64> {
     // WAV RIFF/WAVE
     if buf.len() >= 12 && &buf[0..4] == b"RIFF" && &buf[8..12] == b"WAVE" {
         if let Some(s) = parse_wav_duration(buf) {
+            return Some(s);
+        }
+    }
+    // ADTS AAC: 0xFFF syncword
+    if buf.len() >= 7 && buf[0] == 0xFF && (buf[1] & 0xF0) == 0xF0 {
+        if let Some(s) = parse_aac_adts_duration(buf) {
             return Some(s);
         }
     }
@@ -264,12 +273,16 @@ fn parse_mp4_duration(buf: &[u8]) -> Option<f64> {
                 // If moov-derived duration looks implausibly small (e.g., fragmented case),
                 // fallback to sidx-derived duration if available.
                 if s <= 1.0 {
-                    if let Some(s_sidx) = parse_sidx_total_duration(buf) { return Some(s_sidx); }
+                    if let Some(s_sidx) = parse_sidx_total_duration(buf) {
+                        return Some(s_sidx);
+                    }
                 }
                 return Some(s);
             } else {
                 // Try sidx as last resort
-                if let Some(s_sidx) = parse_sidx_total_duration(buf) { return Some(s_sidx); }
+                if let Some(s_sidx) = parse_sidx_total_duration(buf) {
+                    return Some(s_sidx);
+                }
                 return None;
             }
         }
@@ -278,10 +291,14 @@ fn parse_mp4_duration(buf: &[u8]) -> Option<f64> {
     }
     // Fallback: scan for a 'moov' box anywhere in the file
     if let Some((start, end)) = find_box_anywhere(buf, b"moov") {
-        if let Some(s) = parse_moov_for_duration(&buf[start..end]) { return Some(s); }
+        if let Some(s) = parse_moov_for_duration(&buf[start..end]) {
+            return Some(s);
+        }
     }
     // Final fallback: single sidx box total duration
-    if let Some(s_sidx) = parse_sidx_total_duration(buf) { return Some(s_sidx); }
+    if let Some(s_sidx) = parse_sidx_total_duration(buf) {
+        return Some(s_sidx);
+    }
     None
 }
 
@@ -473,10 +490,14 @@ fn parse_mdhd(body: &[u8]) -> Option<f64> {
 }
 
 fn parse_mvhd_timescale(body: &[u8]) -> Option<u32> {
-    if body.len() < 16 { return None; }
+    if body.len() < 16 {
+        return None;
+    }
     let version = body[0];
     if version == 1 {
-        if body.len() < 24 { return None; }
+        if body.len() < 24 {
+            return None;
+        }
         Some(u32::from_be_bytes([body[20], body[21], body[22], body[23]]))
     } else {
         Some(u32::from_be_bytes([body[12], body[13], body[14], body[15]]))
@@ -484,15 +505,21 @@ fn parse_mvhd_timescale(body: &[u8]) -> Option<u32> {
 }
 
 fn parse_mehd_duration(body: &[u8]) -> Option<u64> {
-    if body.len() < 8 { return None; }
+    if body.len() < 8 {
+        return None;
+    }
     let version = body[0];
     if version == 1 {
-        if body.len() < 12 { return None; }
+        if body.len() < 12 {
+            return None;
+        }
         Some(u64::from_be_bytes([
             body[4], body[5], body[6], body[7], body[8], body[9], body[10], body[11],
         ]))
     } else {
-        if body.len() < 8 { return None; }
+        if body.len() < 8 {
+            return None;
+        }
         Some(u32::from_be_bytes([body[4], body[5], body[6], body[7]]) as u64)
     }
 }
@@ -503,25 +530,45 @@ fn find_box_anywhere(buf: &[u8], r#type: &[u8; 4]) -> Option<(usize, usize)> {
     let mut i = 0usize;
     while i + 8 <= buf.len() {
         if &buf[i..i + 4] == r#type {
-            if i < 4 { return None; }
+            if i < 4 {
+                return None;
+            }
             let pos = i - 4; // size field
-            if pos + 8 > buf.len() { return None; }
-            let size32 = u32::from_be_bytes([buf[pos], buf[pos + 1], buf[pos + 2], buf[pos + 3]]) as u64;
+            if pos + 8 > buf.len() {
+                return None;
+            }
+            let size32 =
+                u32::from_be_bytes([buf[pos], buf[pos + 1], buf[pos + 2], buf[pos + 3]]) as u64;
             let (header, total) = if size32 == 1 {
-                if pos + 16 > buf.len() { return None; }
-                (16usize, u64::from_be_bytes([
-                    buf[pos + 8], buf[pos + 9], buf[pos + 10], buf[pos + 11], buf[pos + 12], buf[pos + 13],
-                    buf[pos + 14], buf[pos + 15],
-                ]))
+                if pos + 16 > buf.len() {
+                    return None;
+                }
+                (
+                    16usize,
+                    u64::from_be_bytes([
+                        buf[pos + 8],
+                        buf[pos + 9],
+                        buf[pos + 10],
+                        buf[pos + 11],
+                        buf[pos + 12],
+                        buf[pos + 13],
+                        buf[pos + 14],
+                        buf[pos + 15],
+                    ]),
+                )
             } else if size32 == 0 {
                 (8usize, (buf.len() - pos) as u64)
             } else {
                 (8usize, size32)
             };
-            if total < header as u64 { return None; }
+            if total < header as u64 {
+                return None;
+            }
             let start = pos + header;
             let end = (pos as u64 + total) as usize;
-            if end > buf.len() { return None; }
+            if end > buf.len() {
+                return None;
+            }
             return Some((start, end));
         }
         i += 1;
@@ -533,33 +580,51 @@ fn find_box_anywhere(buf: &[u8], r#type: &[u8; 4]) -> Option<(usize, usize)> {
 fn parse_sidx_total_duration(buf: &[u8]) -> Option<f64> {
     let (start, end) = find_box_anywhere(buf, b"sidx")?;
     let body = &buf[start..end];
-    if body.len() < 12 { return None; }
+    if body.len() < 12 {
+        return None;
+    }
     let version = body[0];
     // flags = body[1..4]
-    if body.len() < 16 { return None; }
+    if body.len() < 16 {
+        return None;
+    }
     let timescale = u32::from_be_bytes([body[8], body[9], body[10], body[11]]);
-    if timescale == 0 { return None; }
+    if timescale == 0 {
+        return None;
+    }
     let mut off = 12usize;
     // earliest_presentation_time & first_offset depend on version
     if version == 0 {
-        if body.len() < off + 8 { return None; }
+        if body.len() < off + 8 {
+            return None;
+        }
         // skip 4 + 4
         off += 8;
     } else {
-        if body.len() < off + 16 { return None; }
+        if body.len() < off + 16 {
+            return None;
+        }
         off += 16;
     }
-    if body.len() < off + 2 { return None; }
+    if body.len() < off + 2 {
+        return None;
+    }
     off += 2; // reserved
-    if body.len() < off + 2 { return None; }
+    if body.len() < off + 2 {
+        return None;
+    }
     let ref_count = u16::from_be_bytes([body[off], body[off + 1]]) as usize;
     off += 2;
     let mut total: u64 = 0;
     for _ in 0..ref_count {
-        if body.len() < off + 12 { return None; }
-        let ref_type_size = u32::from_be_bytes([body[off], body[off + 1], body[off + 2], body[off + 3]]);
+        if body.len() < off + 12 {
+            return None;
+        }
+        let ref_type_size =
+            u32::from_be_bytes([body[off], body[off + 1], body[off + 2], body[off + 3]]);
         off += 4;
-        let sub_dur = u32::from_be_bytes([body[off], body[off + 1], body[off + 2], body[off + 3]]) as u64;
+        let sub_dur =
+            u32::from_be_bytes([body[off], body[off + 1], body[off + 2], body[off + 3]]) as u64;
         off += 4;
         // SAP flags + time
         off += 4;
@@ -568,8 +633,73 @@ fn parse_sidx_total_duration(buf: &[u8]) -> Option<f64> {
             total = total.saturating_add(sub_dur);
         }
     }
-    if total == 0 { return None; }
+    if total == 0 {
+        return None;
+    }
     Some(total as f64 / timescale as f64)
+}
+
+// AAC ADTS duration: iterate ADTS frames via header, summing samples per frame.
+fn parse_aac_adts_duration(buf: &[u8]) -> Option<f64> {
+    let mut i = 0usize;
+    // Skip ID3v2 if present
+    if buf.len() >= 10 && &buf[0..3] == b"ID3" {
+        let size = synchsafe_to_u32(&buf[6..10]) as usize;
+        let mut skip = 10 + size;
+        if (buf[5] & 0x10) != 0 {
+            skip += 10;
+        }
+        if skip < buf.len() {
+            i = skip;
+        } else {
+            return None;
+        }
+    }
+
+    // sampling frequency table
+    const SR: [u32; 13] = [
+        96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000, 7350,
+    ];
+
+    let mut total_samples: u64 = 0;
+    let mut sample_rate: Option<u32> = None;
+    let mut frames: u64 = 0;
+
+    while i + 7 <= buf.len() {
+        if buf[i] == 0xFF && (buf[i + 1] & 0xF0) == 0xF0 {
+            let sf_index = ((buf[i + 2] >> 2) & 0x0F) as usize;
+            if sf_index >= SR.len() {
+                i += 1;
+                continue;
+            }
+            let sr = SR[sf_index];
+            if sample_rate.is_none() {
+                sample_rate = Some(sr);
+            }
+            let frame_length: usize = (((buf[i + 3] & 0x03) as usize) << 11)
+                | ((buf[i + 4] as usize) << 3)
+                | (((buf[i + 5] >> 5) & 0x07) as usize);
+            if frame_length < 7 {
+                i += 1;
+                continue;
+            }
+            if i + frame_length > buf.len() {
+                break;
+            }
+            let num_raw_blocks = (buf[i + 6] & 0x03) as u64; // 0 => 1 block
+            total_samples = total_samples.saturating_add(1024 * (num_raw_blocks + 1));
+            frames += 1;
+            i += frame_length;
+            // Skip CRC if present? Frame length already includes header+payload, so fine.
+        } else {
+            i += 1;
+        }
+    }
+    let sr = sample_rate?;
+    if frames == 0 || sr == 0 {
+        return None;
+    }
+    Some(total_samples as f64 / sr as f64)
 }
 
 // Ogg Opus duration: final granule - pre-skip at 48kHz

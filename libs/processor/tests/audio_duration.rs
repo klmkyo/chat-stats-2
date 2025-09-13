@@ -91,6 +91,33 @@ fn gen_mp4(seconds: u32, name: &str) -> Option<PathBuf> {
     }
 }
 
+fn gen_aac(seconds: u32, name: &str) -> Option<PathBuf> {
+    let out = project_target_dir().join(format!("{}.aac", name));
+    let status = Command::new("ffmpeg")
+        .args([
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            &format!("sine=frequency=1000:duration={}", seconds),
+            "-c:a",
+            "aac",
+            "-b:a",
+            "96k",
+            "-f",
+            "adts",
+            out.to_str().unwrap(),
+        ])
+        .status();
+    match status {
+        Ok(s) if s.success() => Some(out),
+        _ => None,
+    }
+}
+
 fn gen_opus(seconds: u32, name: &str) -> Option<PathBuf> {
     let out = project_target_dir().join(format!("{}.opus", name));
     let status = Command::new("ffmpeg")
@@ -211,6 +238,30 @@ fn audio_duration_opus_ffmpeg() {
     assert!(dur.is_some(), "opus duration should be detected");
     let dur = dur.unwrap();
     assert!((7..=9).contains(&dur), "expected ~8s, got {}", dur);
+}
+
+#[test]
+fn audio_duration_aac_ffmpeg() {
+    if !has_ffmpeg() {
+        eprintln!("ffmpeg not found; skipping aac test");
+        return;
+    }
+    let path = match gen_aac(8, "test_tone_8s_aac") {
+        Some(p) => p,
+        None => {
+            eprintln!("failed to generate aac; skipping");
+            return;
+        }
+    };
+    let mut f = std::fs::File::open(&path).unwrap();
+    let dur = processor::utils::audio::detect_duration_seconds(path.to_str().unwrap(), &mut f)
+        .expect("duration for aac");
+    assert!(
+        approx_eq_rounded_secs(dur, 8, 1),
+        "expected ~8s, got {} (path {:?})",
+        dur,
+        path
+    );
 }
 
 #[test]
