@@ -68,7 +68,7 @@ pub fn import_facebook_archive<R: std::io::Seek + std::io::Read>(
 pub fn import_thread<R: std::io::Seek + std::io::Read>(
     archive: &mut ZipArchive<R>,
     folder_name: &str,
-    thread_dir_path: &str,
+    _thread_dir_path: &str,
     parsed: &FacebookExportRoot,
     batch: &mut WriteBatch<'_>,
     state: &mut crate::importers::messenger::ImportState,
@@ -171,20 +171,15 @@ pub fn import_thread<R: std::io::Seek + std::io::Read>(
                     .add_message_gif(msg_id, u)
                     .with_context(|| format!("attach gif to msg {}", msg_id))?,
                 Variant::Audio(u) => {
-                    let mut len_opt = {
-                        if let Ok(mut f) = archive.by_name(u) {
-                            detect_duration_seconds(u, &mut f)
-                        } else {
-                            None
-                        }
+                    // Prefer current ZIP; fall back to global media index by full pathname
+                    let len_opt = if let Ok(mut f) = archive.by_name(u) {
+                        detect_duration_seconds(u, &mut f)
+                    } else {
+                        state
+                            .file_index
+                            .with_file(u, |r| detect_duration_seconds(u, r))
+                            .unwrap_or(None)
                     };
-                    if len_opt.is_none() {
-                        // Try relative to thread dir
-                        let candidate = format!("{}/{}", thread_dir_path, u);
-                        if let Ok(mut f2) = archive.by_name(&candidate) {
-                            len_opt = detect_duration_seconds(u, &mut f2);
-                        }
-                    }
                     batch
                         .add_message_audio(msg_id, u, len_opt)
                         .with_context(|| format!("attach audio to msg {}", msg_id))?

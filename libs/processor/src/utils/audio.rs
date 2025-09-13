@@ -27,7 +27,7 @@ use std::io::Read;
 ///     println!("Duration: {} seconds", duration);
 /// }
 /// ```
-pub fn detect_duration_seconds<R: Read>(path_hint: &str, reader: &mut R) -> Option<i64> {
+pub fn detect_duration_seconds<R: Read + ?Sized>(path_hint: &str, reader: &mut R) -> Option<i64> {
     // Read the entire stream into memory (input may be non-seekable like zip entries)
     let mut buf = Vec::new();
     if reader.read_to_end(&mut buf).is_err() || buf.is_empty() {

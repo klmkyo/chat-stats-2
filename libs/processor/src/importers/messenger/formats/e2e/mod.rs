@@ -148,9 +148,14 @@ pub fn import_e2e_json<R: Seek + Read>(
         for media in m.media {
             match classify_media(&media.uri) {
                 "audio" => {
-                    let len_opt = match archive.by_name(&media.uri) {
-                        Ok(mut f) => detect_duration_seconds(&media.uri, &mut f),
-                        Err(_) => None,
+                    // Prefer current ZIP; fall back to global media index by full pathname
+                    let len_opt = if let Ok(mut f) = archive.by_name(&media.uri) {
+                        detect_duration_seconds(&media.uri, &mut f)
+                    } else {
+                        state
+                            .file_index
+                            .with_file(&media.uri, |r| detect_duration_seconds(&media.uri, r))
+                            .unwrap_or(None)
                     };
                     batch
                         .add_message_audio(msg_id, &media.uri, len_opt)

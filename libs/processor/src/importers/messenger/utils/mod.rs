@@ -5,6 +5,8 @@
 
 pub mod db_helpers;
 pub mod encoding;
+pub mod file_index;
 
 pub use db_helpers::*;
 pub use encoding::*;
+pub use file_index::*;

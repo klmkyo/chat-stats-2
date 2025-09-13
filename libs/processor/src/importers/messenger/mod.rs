@@ -23,6 +23,7 @@ pub struct ImportState {
     pub next_user_id: i64,
     pub next_conv_id: i64,
     pub next_msg_id: i64,
+    pub file_index: utils::file_index::FileIndex,
 }
 
 impl Default for ImportState {
@@ -39,6 +40,7 @@ impl ImportState {
             next_user_id: 1,
             next_conv_id: 1,
             next_msg_id: 1,
+            file_index: utils::file_index::FileIndex::default(),
         }
     }
 }
@@ -84,6 +86,8 @@ pub fn import_to_database(paths: Vec<PathBuf>, db_path: &Path) -> Result<()> {
         .context("Failed to begin database write transaction")?;
 
     let mut state = ImportState::new();
+    // Build a global media index so we can resolve audio across ZIPs by full pathname.
+    state.file_index = utils::file_index::build_file_index(&paths);
 
     for path in paths {
         let export_format = determine_zip_format(&path)?;
