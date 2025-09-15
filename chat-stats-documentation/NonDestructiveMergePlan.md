@@ -35,13 +35,14 @@
   - name TEXT, avatar_uri TEXT
   - canonical_person_id INTEGER NOT NULL REFERENCES canonical_person(id)
 - message
-  - id PK, sender INTEGER NOT NULL REFERENCES user(id) ON DELETE CASCADE
+  - id PK, sender INTEGER NOT NULL REFERENCES person(id) ON DELETE CASCADE
   - sent_at INTEGER NOT NULL
+  - unsent INTEGER NOT NULL DEFAULT 0
 - message_text / image / video / gif / audio
   - id PK, message_id INTEGER NOT NULL REFERENCES message(id) ON DELETE CASCADE
   - payload fields (e.g., text, uri, length_seconds for audio)
 - reaction
-  - id PK, reactor_id INTEGER NOT NULL REFERENCES user(id) ON DELETE CASCADE
+  - id PK, reactor_id INTEGER NOT NULL REFERENCES person(id) ON DELETE CASCADE
   - message_id INTEGER NOT NULL REFERENCES message(id) ON DELETE CASCADE
   - reaction TEXT
 

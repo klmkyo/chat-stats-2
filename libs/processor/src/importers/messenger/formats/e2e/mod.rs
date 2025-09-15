@@ -119,10 +119,6 @@ pub fn import_e2e_json<R: Seek + Read>(
     }
 
     for m in parsed.messages {
-        if m.is_unsent {
-            continue;
-        }
-
         // Sender (per-conversation person)
         let sender_id = ensure_person_in_conversation(batch, state, conv_id, &m.sender_name)?;
 
@@ -133,9 +129,10 @@ pub fn import_e2e_json<R: Seek + Read>(
             sent_at /= 1000;
         }
 
+        let is_unsent = m.is_unsent;
         let msg_id = batch
-            .insert_message(sender_id, sent_at)
-            .context("insert base e2e msg")?;
+            .insert_message(sender_id, sent_at, is_unsent)
+            .context("insert e2e msg")?;
 
         if !m.text.trim().is_empty() {
             batch

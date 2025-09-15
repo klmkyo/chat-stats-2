@@ -93,7 +93,7 @@ pub fn import_thread<R: std::io::Seek + std::io::Read>(
 
     // Messages
     for m in parsed.messages.iter().rev() {
-        if m.is_unsent.unwrap_or(false) || m.is_geoblocked_for_viewer {
+        if m.is_geoblocked_for_viewer {
             continue;
         }
 
@@ -111,6 +111,7 @@ pub fn import_thread<R: std::io::Seek + std::io::Read>(
         }
         let mut variants: Vec<Variant<'_>> = Vec::new();
 
+        let is_unsent = m.is_unsent.unwrap_or(false);
         if let Some(text) = m.content.as_deref() {
             if !text.trim().is_empty() {
                 variants.push(Variant::Text(text));
@@ -148,14 +149,14 @@ pub fn import_thread<R: std::io::Seek + std::io::Read>(
                 variants.push(Variant::Text(link));
             }
         }
-        if variants.is_empty() {
+        if variants.is_empty() && !is_unsent {
             continue;
         }
 
         // Create a single base message row.
         let msg_id = batch
-            .insert_message(sender_id, sent_at)
-            .with_context(|| format!("insert base msg conv_id {}", conv_id))?;
+            .insert_message(sender_id, sent_at, is_unsent)
+            .with_context(|| format!("insert msg conv_id {} (unsent={})", conv_id, is_unsent))?;
 
         // Attach all variants to this message.
         for v in variants.iter() {

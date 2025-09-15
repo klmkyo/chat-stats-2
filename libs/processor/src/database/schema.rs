@@ -128,7 +128,8 @@ impl MessageDb {
                 CREATE TABLE IF NOT EXISTS message(
                   id INTEGER PRIMARY KEY,
                   sender INTEGER NOT NULL REFERENCES person(id) ON DELETE CASCADE,
-                  sent_at INTEGER NOT NULL  -- epoch seconds
+                  sent_at INTEGER NOT NULL,  -- epoch seconds
+                  unsent INTEGER NOT NULL DEFAULT FALSE
                 );
 
                 CREATE TABLE IF NOT EXISTS message_text(
@@ -281,11 +282,21 @@ impl<'c> WriteBatch<'c> {
         Ok(tx.last_insert_rowid())
     }
 
-    /// Insert base message row (no content-type rows yet).
-    pub fn insert_message(&mut self, sender_id: i64, sent_at_epoch: i64) -> Result<i64> {
+    /// Insert a message (unsent stored as TRUE/FALSE integer literal).
+    pub fn insert_message(
+        &mut self,
+        sender_id: i64,
+        sent_at_epoch: i64,
+        unsent: bool,
+    ) -> Result<i64> {
         let tx = self.tx.as_mut().unwrap();
-        let mut stmt = tx.prepare_cached("INSERT INTO message(sender, sent_at) VALUES (?1, ?2)")?;
-        stmt.execute(params![sender_id, sent_at_epoch])?;
+        let mut stmt =
+            tx.prepare_cached("INSERT INTO message(sender, sent_at, unsent) VALUES (?1, ?2, ?3)")?;
+        stmt.execute(params![
+            sender_id,
+            sent_at_epoch,
+            if unsent { 1 } else { 0 }
+        ])?;
         Ok(tx.last_insert_rowid())
     }
 

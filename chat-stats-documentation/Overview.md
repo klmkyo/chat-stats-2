@@ -63,6 +63,7 @@ Tables:
   - id
   - sender: FK person.id ON DELETE CASCADE
   - sent_at: integer (unixepoch seconds)
+  - unsent: integer (0=false, 1=true; default 0)
 - message_text
   - message_id: FK message.id ON DELETE CASCADE
   - text: string
