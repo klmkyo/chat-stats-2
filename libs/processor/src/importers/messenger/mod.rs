@@ -3,9 +3,9 @@
 //! Handles importing Facebook Messenger exports in various formats,
 //! with support for both legacy and end-to-end encrypted chat exports.
 //!
-//! The import process creates a normalized database with export_source field
-//! to track which format each conversation came from (messenger:facebook or messenger:e2e).
-//! Post-import merging is handled separately by querying the database.
+//! The import process creates a normalized database with an `export` table
+//! tracked per run (Facebook multi-part zips form one export; each E2E zip is its own export).
+//! Post-import merging is handled non-destructively by assigning canonical IDs.
 
 use anyhow::{Context, Result};
 use std::{collections::HashMap, fs::File, path::Path, path::PathBuf};
@@ -18,11 +18,11 @@ pub mod utils;
 
 /// Importer state shared across multiple files/zips in a run.
 pub struct ImportState {
-    pub user_ids: HashMap<String, i64>,
+    /// Map from thread folder name to conversation id, to dedupe within a run.
     pub folder_names_to_conv_ids: HashMap<String, i64>,
-    pub next_user_id: i64,
-    pub next_conv_id: i64,
-    pub next_msg_id: i64,
+    /// Map of per-conversation participant name -> per-conversation person id.
+    pub person_ids_by_conversation: HashMap<i64, HashMap<String, i64>>,
+    /// Global media index across all selected paths for duration probing.
     pub file_index: utils::file_index::FileIndex,
 }
 
@@ -35,11 +35,8 @@ impl Default for ImportState {
 impl ImportState {
     pub fn new() -> Self {
         Self {
-            user_ids: HashMap::new(),
             folder_names_to_conv_ids: HashMap::new(),
-            next_user_id: 1,
-            next_conv_id: 1,
-            next_msg_id: 1,
+            person_ids_by_conversation: HashMap::new(),
             file_index: utils::file_index::FileIndex::default(),
         }
     }
@@ -89,13 +86,32 @@ pub fn import_to_database(paths: Vec<PathBuf>, db_path: &Path) -> Result<()> {
     // Build a global media index so we can resolve audio across ZIPs by full pathname.
     state.file_index = utils::file_index::build_file_index(&paths);
 
-    for path in paths {
-        let export_format = determine_zip_format(&path)?;
-
-        match export_format {
-            ExportFormat::Facebook => import_facebook_zip(&path, &mut batch, &mut state)?,
-            ExportFormat::E2E => import_e2e_zip(&path, &mut batch, &mut state)?,
+    // Partition selected paths by export format (zip-based detection)
+    let mut facebook_paths: Vec<PathBuf> = Vec::new();
+    let mut e2e_paths: Vec<PathBuf> = Vec::new();
+    for path in paths.into_iter() {
+        match determine_zip_format(&path)? {
+            ExportFormat::Facebook => facebook_paths.push(path),
+            ExportFormat::E2E => e2e_paths.push(path),
         }
+    }
+
+    // Facebook: one export across all selected FB zips
+    if !facebook_paths.is_empty() {
+        let fb_meta_json = compute_group_meta(&facebook_paths);
+        let export_id =
+            batch.insert_export("messenger:facebook", None, Some(&fb_meta_json))?;
+
+        for path in facebook_paths {
+            import_facebook_zip(&path, export_id, &mut batch, &mut state)?;
+        }
+    }
+
+    // E2E: one export per zip
+    for path in e2e_paths {
+        let meta_json = compute_group_meta(std::slice::from_ref(&path));
+        let export_id = batch.insert_export("messenger:e2e", None, Some(&meta_json))?;
+        import_e2e_zip(&path, export_id, &mut batch, &mut state)?;
     }
 
     batch
@@ -107,6 +123,7 @@ pub fn import_to_database(paths: Vec<PathBuf>, db_path: &Path) -> Result<()> {
 /// Import Facebook conversations from a ZIP archive.
 fn import_facebook_zip(
     path: &Path,
+    export_id: i64,
     batch: &mut WriteBatch<'_>,
     state: &mut ImportState,
 ) -> Result<()> {
@@ -114,14 +131,32 @@ fn import_facebook_zip(
         File::open(path).with_context(|| format!("Failed to open ZIP file: {}", path.display()))?;
     let mut archive = ZipArchive::new(file)
         .with_context(|| format!("Failed to read ZIP archive: {}", path.display()))?;
-    formats::facebook::import_facebook_archive(&mut archive, batch, state)
+    formats::facebook::import_facebook_archive(&mut archive, export_id, batch, state)
 }
 
 /// Import E2E conversations from a ZIP archive.
-fn import_e2e_zip(path: &Path, batch: &mut WriteBatch<'_>, state: &mut ImportState) -> Result<()> {
+fn import_e2e_zip(
+    path: &Path,
+    export_id: i64,
+    batch: &mut WriteBatch<'_>,
+    state: &mut ImportState,
+) -> Result<()> {
     let file =
         File::open(path).with_context(|| format!("Failed to open ZIP file: {}", path.display()))?;
     let mut archive = ZipArchive::new(file)
         .with_context(|| format!("Failed to read ZIP archive: {}", path.display()))?;
-    formats::e2e::import_e2e_archive(&mut archive, batch, state)
+    formats::e2e::import_e2e_archive(&mut archive, export_id, batch, state)
+}
+
+/// Build a small meta JSON listing file paths. Kept lightweight to avoid I/O hashing.
+fn compute_group_meta(paths: &[PathBuf]) -> String {
+    let files: Vec<String> = paths
+        .iter()
+        .map(|p| p.to_string_lossy().to_string())
+        .collect();
+    serde_json::json!({
+        "file_count": files.len(),
+        "files": files,
+    })
+    .to_string()
 }

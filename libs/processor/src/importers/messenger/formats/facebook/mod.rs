@@ -11,7 +11,7 @@ use serde_json;
 use zip::ZipArchive;
 
 use crate::database::WriteBatch;
-use crate::importers::messenger::utils::{upsert_conversation, upsert_user};
+use crate::importers::messenger::utils::{ensure_conversation, ensure_person_in_conversation};
 use crate::importers::messenger::ImportState;
 use crate::utils::audio::detect_duration_seconds;
 
@@ -23,6 +23,7 @@ use json::FacebookExportRoot;
 /// Import a Facebook Messenger ZIP archive.
 pub fn import_facebook_archive<R: std::io::Seek + std::io::Read>(
     archive: &mut ZipArchive<R>,
+    export_id: i64,
     batch: &mut WriteBatch<'_>,
     state: &mut ImportState,
 ) -> Result<()> {
@@ -57,6 +58,7 @@ pub fn import_facebook_archive<R: std::io::Seek + std::io::Read>(
             folder_name,
             &thread_dir_path,
             &parsed,
+            export_id,
             batch,
             state,
         )?;
@@ -70,25 +72,24 @@ pub fn import_thread<R: std::io::Seek + std::io::Read>(
     folder_name: &str,
     _thread_dir_path: &str,
     parsed: &FacebookExportRoot,
+    export_id: i64,
     batch: &mut WriteBatch<'_>,
     state: &mut crate::importers::messenger::ImportState,
 ) -> Result<()> {
-    // Ensure users (participants)
-    for p in &parsed.participants {
-        upsert_user(batch, state, p.name.as_str())?;
-    }
-
-    // Create conversation with Facebook export source
+    // Create conversation (and canonical) and ensure users (participants) per conversation
     let image_uri = parsed.image.as_ref().map(|i| i.uri.as_str());
-    let conv_id = upsert_conversation(
+    let conv_id = ensure_conversation(
         batch,
         state,
         folder_name,
         parsed.participants.len(),
         image_uri,
         Some(&parsed.title),
-        "messenger:facebook",
+        export_id,
     )?;
+    for p in &parsed.participants {
+        ensure_person_in_conversation(batch, state, conv_id, p.name.as_str())?;
+    }
 
     // Messages
     for m in parsed.messages.iter().rev() {
@@ -96,8 +97,8 @@ pub fn import_thread<R: std::io::Seek + std::io::Read>(
             continue;
         }
 
-        // sender id
-        let sender_id = upsert_user(batch, state, &m.sender_name)?;
+        // sender id (per-conversation)
+        let sender_id = ensure_person_in_conversation(batch, state, conv_id, &m.sender_name)?;
 
         let sent_at = m.timestamp_ms / 1000;
 
@@ -152,11 +153,9 @@ pub fn import_thread<R: std::io::Seek + std::io::Read>(
         }
 
         // Create a single base message row.
-        let msg_id = state.next_msg_id;
-        state.next_msg_id += 1;
-        batch
-            .insert_message(msg_id, sender_id, conv_id, sent_at)
-            .with_context(|| format!("insert base msg {}, conv_id {}", msg_id, conv_id))?;
+        let msg_id = batch
+            .insert_message(sender_id, sent_at)
+            .with_context(|| format!("insert base msg conv_id {}", conv_id))?;
 
         // Attach all variants to this message.
         for v in variants.iter() {
@@ -192,7 +191,7 @@ pub fn import_thread<R: std::io::Seek + std::io::Read>(
 
         if let (pid, Some(reactions)) = (msg_id, m.reactions.as_ref()) {
             for r in reactions {
-                let reactor_id = upsert_user(batch, state, &r.actor)?;
+                let reactor_id = ensure_person_in_conversation(batch, state, conv_id, &r.actor)?;
                 batch
                     .insert_reaction(reactor_id, pid, &r.reaction)
                     .with_context(|| format!("insert reaction on msg {}", pid))?;

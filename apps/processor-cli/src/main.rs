@@ -32,7 +32,7 @@ fn main() {
                 std::process::exit(2);
             }
 
-            // Overwrite existing DB once
+            // Active dev: recreate DB for this run
             if db.exists() {
                 let _ = std::fs::remove_file(&db);
             }
@@ -76,17 +76,25 @@ fn merge_duplicate_conversations(
     let db = MessageDb::open(db_path)?;
     let conn = db.conn();
 
-    // Find potential duplicates: DM conversations with the same name but different export_source
-    // We only merge DMs since group messages only exist in Facebook format, not E2E
+    // Find potential duplicates: DM conversations with the same name but from different sources
+    // Sources are joined via export table. Only DM merges are considered.
     let mut stmt = conn.prepare(
         "
         SELECT 
-            cfb.id as id_fb, cfb.name as name_fb, cfb.export_source as source_fb, cfb.type as type_fb,
-            ce.id as id_e2e, ce.name as name_e2e, ce.export_source as source_e2e, ce.type as type_e2e
+            cfb.id as id_fb,
+            cfb.name as name_fb,
+            efb.source as source_fb,
+            cfb.type as type_fb,
+            ce.id as id_e2e,
+            ce.name as name_e2e,
+            ee.source as source_e2e,
+            ce.type as type_e2e
         FROM conversation cfb 
+        JOIN export efb ON efb.id = cfb.export_id
         JOIN conversation ce ON cfb.name = ce.name 
-        AND cfb.export_source = 'messenger:facebook' AND ce.export_source = 'messenger:e2e' -- Avoid duplicate pairs
-        AND cfb.type = 'dm' AND ce.type = 'dm'  -- Only merge DM conversations
+        JOIN export ee ON ee.id = ce.export_id
+        WHERE efb.source = 'messenger:facebook' AND ee.source = 'messenger:e2e'
+          AND cfb.type = 'dm' AND ce.type = 'dm'
         ORDER BY cfb.name
     ",
     )?;
@@ -103,13 +111,13 @@ fn merge_duplicate_conversations(
         merge_pairs.push((id1, id2, name1.clone()));
     }
 
-    // Perform the actual merges
+    // Perform the actual merges (non-destructive): point both at the same canonical_conversation
     let mut merged_count = 0;
     for (keep_id, merge_id, name) in merge_pairs {
-        match merge_conversations(conn, keep_id, merge_id) {
+        match merge_conversations_canonical(conn, keep_id, merge_id) {
             Ok(()) => {
                 println!(
-                    "  Merged '{}' (kept conversation {}, merged {})",
+                    "  Linked '{}' canonically (kept {}, merged {})",
                     name, keep_id, merge_id
                 );
                 merged_count += 1;
@@ -123,22 +131,25 @@ fn merge_duplicate_conversations(
     Ok(merged_count)
 }
 
-/// Merge two conversations by moving all messages from merge_id to keep_id and deleting merge_id.
-fn merge_conversations(
+/// Non-destructively merge conversations by assigning the same canonical_conversation_id.
+fn merge_conversations_canonical(
     conn: &rusqlite::Connection,
     keep_id: i64,
     merge_id: i64,
 ) -> Result<(), Box<dyn std::error::Error>> {
     conn.execute("BEGIN TRANSACTION", [])?;
 
-    // Move all messages from merge_id conversation to keep_id conversation
-    conn.execute(
-        "UPDATE message SET conversation = ? WHERE conversation = ?",
-        [keep_id, merge_id],
+    // Get canonical of keep_id
+    let canon: i64 = conn.query_row(
+        "SELECT canonical_conversation_id FROM conversation WHERE id=?",
+        [keep_id],
+        |r| r.get(0),
     )?;
-
-    // Delete the merged conversation
-    conn.execute("DELETE FROM conversation WHERE id = ?", [merge_id])?;
+    // Point merge_id to the same canonical
+    conn.execute(
+        "UPDATE conversation SET canonical_conversation_id=? WHERE id=?",
+        [canon, merge_id],
+    )?;
 
     conn.execute("COMMIT", [])?;
 

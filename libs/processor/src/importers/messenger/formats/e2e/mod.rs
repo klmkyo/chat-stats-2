@@ -3,7 +3,7 @@
 //! Handles the newer Facebook Messenger end-to-end encrypted export format,
 //! which uses a different structure and JSON schema than the legacy format.
 
-use crate::importers::messenger::utils::{upsert_conversation, upsert_user};
+use crate::importers::messenger::utils::{ensure_conversation, ensure_person_in_conversation};
 use crate::utils::audio::detect_duration_seconds;
 use crate::{
     database::WriteBatch, importers::messenger::formats::e2e::json::E2eExportRoot,
@@ -36,6 +36,7 @@ pub fn is_e2e_archive<R: Seek + Read>(archive: &ZipArchive<R>) -> bool {
 /// Import an E2E-format ZIP archive.
 pub fn import_e2e_archive<R: Seek + Read>(
     archive: &mut ZipArchive<R>,
+    export_id: i64,
     batch: &mut WriteBatch<'_>,
     state: &mut ImportState,
 ) -> Result<()> {
@@ -56,7 +57,7 @@ pub fn import_e2e_archive<R: Seek + Read>(
                 .with_context(|| format!("read {}", json_path))?;
         }
 
-        import_e2e_json(archive, &json_content, batch, state)?;
+        import_e2e_json(archive, &json_content, export_id, batch, state)?;
     }
     Ok(())
 }
@@ -80,17 +81,13 @@ fn classify_media(uri: &str) -> &'static str {
 pub fn import_e2e_json<R: Seek + Read>(
     archive: &mut ZipArchive<R>,
     json_content: &str,
+    export_id: i64,
     batch: &mut WriteBatch<'_>,
     state: &mut ImportState,
 ) -> Result<()> {
     let parsed: E2eExportRoot = serde_json::from_str(json_content).context("parsing e2e json")?;
 
-    // Ensure users
-    for name in &parsed.participants {
-        upsert_user(batch, state, name)?;
-    }
-
-    // Create conversation with E2E export source
+    // Create conversation (and canonical) and ensure users per conversation
     // Thread names have the "Name Surname_X" format, where X is some number. We want
     // to remove the _X.
     let thread_name = parsed
@@ -98,16 +95,18 @@ pub fn import_e2e_json<R: Seek + Read>(
         .split('_')
         .next()
         .unwrap_or(&parsed.thread_name);
-
-    let conv_id = upsert_conversation(
+    let conv_id = ensure_conversation(
         batch,
         state,
         &parsed.thread_name,
         parsed.participants.len(),
         None,
         Some(thread_name),
-        "messenger:e2e",
+        export_id,
     )?;
+    for name in &parsed.participants {
+        ensure_person_in_conversation(batch, state, conv_id, name)?;
+    }
 
     // Collect audio URIs (if we can probe durations from zip)
     let mut audio_uris: Vec<String> = Vec::new();
@@ -124,8 +123,8 @@ pub fn import_e2e_json<R: Seek + Read>(
             continue;
         }
 
-        // Sender
-        let sender_id = upsert_user(batch, state, &m.sender_name)?;
+        // Sender (per-conversation person)
+        let sender_id = ensure_person_in_conversation(batch, state, conv_id, &m.sender_name)?;
 
         // Timestamp: detect seconds vs ms
         let mut sent_at = m.timestamp;
@@ -134,10 +133,8 @@ pub fn import_e2e_json<R: Seek + Read>(
             sent_at /= 1000;
         }
 
-        let msg_id = state.next_msg_id;
-        state.next_msg_id += 1;
-        batch
-            .insert_message(msg_id, sender_id, conv_id, sent_at)
+        let msg_id = batch
+            .insert_message(sender_id, sent_at)
             .context("insert base e2e msg")?;
 
         if !m.text.trim().is_empty() {
@@ -180,7 +177,7 @@ pub fn import_e2e_json<R: Seek + Read>(
         }
 
         for r in m.reactions {
-            let reactor_id = upsert_user(batch, state, &r.actor)?;
+            let reactor_id = ensure_person_in_conversation(batch, state, conv_id, &r.actor)?;
             batch
                 .insert_reaction(reactor_id, msg_id, &r.reaction)
                 .context("insert reaction")?;

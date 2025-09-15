@@ -28,48 +28,74 @@ Chat export and analysis app. Users import chats from various communicators, the
  - We need to have a shared format for all communicators, kind of like an adapter pattern.
  - Th
 
-## Normalized Database Schema
+## Normalized Database Schema (current)
 
 Tables:
- - user
-	 - id
-	 - external_id
-	 - name
-	 - avatar_uri
- - conversation
-	 - id
-	 - type: 'dm' | 'group'
-	 - participants: FK user.id
-	 - image_uri: string // either other participant img or GC image
-	 - name: string // either other participant user name or GC username
- - message
-	 - id
-	 - sender: FK user.id
-	 - type: 'text' | 'image' | 'gif' | 'audio' | 'video' // we don't support mixed, split up into multiple messages if needed. Only one image at once too.
-	 - sent_at: Date
-	 - REFERENCED IN:
-		 - reaction
- - message_text:
-	 - message_id: FK message.id
-	 - text: String
- - message_image
-	 - message_id: FK message.id
-	 - image_uri: String
+- export
+  - id
+  - source: 'messenger:facebook' | 'messenger:e2e'
+  - imported_at: integer (unixepoch)
+  - meta_json: JSON string with file list and counts (no checksums)
+- canonical_person
+  - id
+  - display_name
+  - avatar_uri
+  - created_at: integer (unixepoch)
+- canonical_conversation
+  - id
+  - type: 'dm' | 'group'
+  - name
+  - created_at: integer (unixepoch)
+- conversation
+  - id
+  - type: 'dm' | 'group'
+  - image_uri
+  - name
+  - export_id: FK export.id ON DELETE CASCADE
+  - canonical_conversation_id: FK canonical_conversation.id
+- person
+  - id
+  - conversation_id: FK conversation.id ON DELETE CASCADE
+  - name
+  - avatar_uri
+  - canonical_person_id: FK canonical_person.id
+- message
+  - id
+  - sender: FK person.id ON DELETE CASCADE
+  - sent_at: integer (unixepoch seconds)
+- message_text
+  - message_id: FK message.id ON DELETE CASCADE
+  - text: string
+- message_image
+  - message_id: FK message.id ON DELETE CASCADE
+  - image_uri: string
 - message_video
-	 - message_id: FK message.id
-	 - video_uri: String
+  - message_id: FK message.id ON DELETE CASCADE
+  - video_uri: string
 - message_gif
-	 - message_id: FK message.id
-	 - gif_uri: String
+  - message_id: FK message.id ON DELETE CASCADE
+  - gif_uri: string
 - message_audio
-	 - message_id: FK message.id
-	 - audio_uri: String
-	 - length_seconds: int
- - reaction:
-	 - id
-	 - reactor_id: FK user.id
-	 - message_id: FK message_id
-	 - reaction: String (or whatever is enough for one emoji)
+  - message_id: FK message.id ON DELETE CASCADE
+  - audio_uri: string
+  - length_seconds: integer
+- reaction
+  - id
+  - reactor_id: FK person.id ON DELETE CASCADE
+  - message_id: FK message.id ON DELETE CASCADE
+  - reaction: string (emoji)
+
+Notes:
+- Messages reference only the sender (person). The conversation is inferred by joining sender → person.conversation_id.
+- Deleting an export removes its conversations → persons → messages → content/reactions via cascades.
+
+Indexes (recommended):
+- person(conversation_id, id)
+- person(canonical_person_id)
+- conversation(export_id)
+- conversation(canonical_conversation_id)
+- message(sender, sent_at)
+- reaction(message_id)
 
 ## Project Structure:
 The Expo mobile app offloads intensive processing to a shared Rust library for performance and cross‑platform parity. For now we only support iOS.

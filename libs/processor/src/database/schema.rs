@@ -34,8 +34,6 @@ impl ConversationType {
     }
 }
 
-// Messages are now untyped; content lives in message_* tables referencing message(id).
-
 impl MessageDb {
     /// Open (or create) a SQLite database at `db_path`, configure pragmas, and apply migrations.
     pub fn open(db_path: impl AsRef<Path>) -> Result<Self> {
@@ -60,9 +58,6 @@ impl MessageDb {
             .context("enabling foreign_keys")?;
         conn.pragma_update(None, "busy_timeout", 5000_i64)
             .context("setting PRAGMA busy_timeout=5000")?;
-
-        conn.pragma_update(None, "journal_mode", "OFF")?;
-        conn.pragma_update(None, "synchronous", "OFF")?;
 
         Self::apply_migrations(&mut conn).context("applying migrations")?;
 
@@ -91,10 +86,26 @@ impl MessageDb {
             r#"
                 PRAGMA foreign_keys=ON;
 
-                CREATE TABLE IF NOT EXISTS user(
+                CREATE TABLE IF NOT EXISTS export(
                   id INTEGER PRIMARY KEY,
+                  source TEXT NOT NULL,
+                  checksum TEXT,
+                  imported_at INTEGER NOT NULL DEFAULT (unixepoch('now')),
+                  meta_json TEXT
+                );
+
+                CREATE TABLE IF NOT EXISTS canonical_person(
+                  id INTEGER PRIMARY KEY,
+                  display_name TEXT,
+                  avatar_uri TEXT,
+                  created_at INTEGER NOT NULL DEFAULT (unixepoch('now'))
+                );
+
+                CREATE TABLE IF NOT EXISTS canonical_conversation(
+                  id INTEGER PRIMARY KEY,
+                  type TEXT CHECK(type IN ('dm','group')) NOT NULL,
                   name TEXT,
-                  avatar_uri TEXT
+                  created_at INTEGER NOT NULL DEFAULT (unixepoch('now'))
                 );
 
                 CREATE TABLE IF NOT EXISTS conversation(
@@ -102,13 +113,21 @@ impl MessageDb {
                   type TEXT CHECK(type IN ('dm','group')) NOT NULL,
                   image_uri TEXT,
                   name TEXT,
-                  export_source TEXT NOT NULL
+                  export_id INTEGER NOT NULL REFERENCES export(id) ON DELETE CASCADE,
+                  canonical_conversation_id INTEGER NOT NULL REFERENCES canonical_conversation(id)
+                );
+
+                CREATE TABLE IF NOT EXISTS person(
+                  id INTEGER PRIMARY KEY,
+                  conversation_id INTEGER NOT NULL REFERENCES conversation(id) ON DELETE CASCADE,
+                  name TEXT,
+                  avatar_uri TEXT,
+                  canonical_person_id INTEGER NOT NULL REFERENCES canonical_person(id)
                 );
 
                 CREATE TABLE IF NOT EXISTS message(
                   id INTEGER PRIMARY KEY,
-                  sender INTEGER NOT NULL REFERENCES user(id),
-                  conversation INTEGER NOT NULL REFERENCES conversation(id),
+                  sender INTEGER NOT NULL REFERENCES person(id) ON DELETE CASCADE,
                   sent_at INTEGER NOT NULL  -- epoch seconds
                 );
 
@@ -145,16 +164,18 @@ impl MessageDb {
 
                 CREATE TABLE IF NOT EXISTS reaction(
                   id INTEGER PRIMARY KEY,
-                  reactor_id INTEGER NOT NULL REFERENCES user(id),
-                  message_id INTEGER NOT NULL REFERENCES message(id),
+                  reactor_id INTEGER NOT NULL REFERENCES person(id) ON DELETE CASCADE,
+                  message_id INTEGER NOT NULL REFERENCES message(id) ON DELETE CASCADE,
                   reaction TEXT
                 );
 
-                CREATE INDEX IF NOT EXISTS idx_message_conversation_time
-                  ON message(conversation, sent_at);
-
-                CREATE INDEX IF NOT EXISTS idx_reaction_message
-                  ON reaction(message_id);
+                -- Indexes
+                CREATE INDEX IF NOT EXISTS idx_person_conversation ON person(conversation_id, id);
+                CREATE INDEX IF NOT EXISTS idx_person_canonical ON person(canonical_person_id);
+                CREATE INDEX IF NOT EXISTS idx_conversation_export ON conversation(export_id);
+                CREATE INDEX IF NOT EXISTS idx_conversation_canonical ON conversation(canonical_conversation_id);
+                CREATE INDEX IF NOT EXISTS idx_message_sender_time ON message(sender, sent_at);
+                CREATE INDEX IF NOT EXISTS idx_reaction_message ON reaction(message_id);
             "#,
         )]);
         migrations.to_latest(conn)?;
@@ -175,61 +196,97 @@ impl<'c> WriteBatch<'c> {
     // Insert helpers (epoch seconds in)
     // -----------------------------
 
-    /// Insert a user. If you need a specific id, pass it and SQLite will honor it.
-    pub fn insert_user(
+    pub fn insert_export(
         &mut self,
-        id: Option<i64>,
-        name: Option<&str>,
-        avatar_uri: Option<&str>,
-    ) -> Result<()> {
+        source: &str,
+        checksum: Option<&str>,
+        meta_json: Option<&str>,
+    ) -> Result<i64> {
         let tx = self.tx.as_mut().unwrap();
-        match id {
-            Some(id) => {
-                let mut stmt = tx
-                    .prepare_cached("INSERT INTO user(id, name, avatar_uri) VALUES (?1, ?2, ?3)")?;
-                stmt.execute(params![id, name, avatar_uri])?;
-            }
-            None => {
-                let mut stmt =
-                    tx.prepare_cached("INSERT INTO user(name, avatar_uri) VALUES (?1, ?2)")?;
-                stmt.execute(params![name, avatar_uri])?;
-            }
-        };
-        Ok(())
+        let mut stmt = tx.prepare_cached(
+            "INSERT INTO export(source, checksum, meta_json) VALUES (?1, ?2, ?3)",
+        )?;
+        stmt.execute(params![source, checksum, meta_json])?;
+        Ok(tx.last_insert_rowid())
     }
 
-    /// Insert a conversation.
+    pub fn insert_canonical_person(
+        &mut self,
+        display_name: Option<&str>,
+        avatar_uri: Option<&str>,
+    ) -> Result<i64> {
+        let tx = self.tx.as_mut().unwrap();
+        let mut stmt = tx.prepare_cached(
+            "INSERT INTO canonical_person(display_name, avatar_uri) VALUES (?1, ?2)",
+        )?;
+        stmt.execute(params![display_name, avatar_uri])?;
+        Ok(tx.last_insert_rowid())
+    }
+
+    pub fn insert_canonical_conversation(
+        &mut self,
+        ctype: ConversationType,
+        name: Option<&str>,
+    ) -> Result<i64> {
+        let tx = self.tx.as_mut().unwrap();
+        let mut stmt =
+            tx.prepare_cached("INSERT INTO canonical_conversation(type, name) VALUES (?1, ?2)")?;
+        stmt.execute(params![ctype.as_str(), name])?;
+        Ok(tx.last_insert_rowid())
+    }
+
+    /// Insert a conversation instance.
     pub fn insert_conversation(
         &mut self,
-        id: i64,
         ctype: ConversationType,
         image_uri: Option<&str>,
         name: Option<&str>,
-        export_source: &str,
-    ) -> Result<()> {
+        export_id: i64,
+        canonical_conversation_id: i64,
+    ) -> Result<i64> {
         let tx = self.tx.as_mut().unwrap();
         let mut stmt = tx.prepare_cached(
-            "INSERT INTO conversation(id, type, image_uri, name, export_source) VALUES (?1, ?2, ?3, ?4, ?5)",
+            "INSERT INTO conversation(type, image_uri, name, export_id, canonical_conversation_id)
+             VALUES (?1, ?2, ?3, ?4, ?5)",
         )?;
-        stmt.execute(params![id, ctype.as_str(), image_uri, name, export_source])?;
-        Ok(())
+        stmt.execute(params![
+            ctype.as_str(),
+            image_uri,
+            name,
+            export_id,
+            canonical_conversation_id
+        ])?;
+        Ok(tx.last_insert_rowid())
     }
 
-    /// Insert base message row (no content-type).
-    pub fn insert_message(
+    /// Insert a person bound to a conversation and canonical person.
+    pub fn insert_person(
         &mut self,
-        id: i64,
-        sender_id: i64,
         conversation_id: i64,
-        sent_at_epoch: i64,
-    ) -> Result<()> {
+        name: Option<&str>,
+        avatar_uri: Option<&str>,
+        canonical_person_id: i64,
+    ) -> Result<i64> {
         let tx = self.tx.as_mut().unwrap();
         let mut stmt = tx.prepare_cached(
-            "INSERT INTO message(id, sender, conversation, sent_at)
+            "INSERT INTO person(conversation_id, name, avatar_uri, canonical_person_id)
              VALUES (?1, ?2, ?3, ?4)",
         )?;
-        stmt.execute(params![id, sender_id, conversation_id, sent_at_epoch])?;
-        Ok(())
+        stmt.execute(params![
+            conversation_id,
+            name,
+            avatar_uri,
+            canonical_person_id
+        ])?;
+        Ok(tx.last_insert_rowid())
+    }
+
+    /// Insert base message row (no content-type rows yet).
+    pub fn insert_message(&mut self, sender_id: i64, sent_at_epoch: i64) -> Result<i64> {
+        let tx = self.tx.as_mut().unwrap();
+        let mut stmt = tx.prepare_cached("INSERT INTO message(sender, sent_at) VALUES (?1, ?2)")?;
+        stmt.execute(params![sender_id, sent_at_epoch])?;
+        Ok(tx.last_insert_rowid())
     }
 
     /// Add text content to an existing message.
@@ -299,29 +356,12 @@ impl<'c> WriteBatch<'c> {
         stmt.execute(params![reactor_id, message_id, reaction])?;
         Ok(())
     }
-
-    // Optional: "now" (SQLite clock) helpers
-    pub fn insert_message_now(
-        &mut self,
-        id: i64,
-        sender_id: i64,
-        conversation_id: i64,
-    ) -> Result<()> {
-        let tx = self.tx.as_mut().unwrap();
-        let mut stmt = tx.prepare_cached(
-            "INSERT INTO message(id, sender, conversation, sent_at)
-             VALUES (?1, ?2, ?3, unixepoch('now'))",
-        )?;
-        stmt.execute(params![id, sender_id, conversation_id])?;
-        Ok(())
-    }
 }
 
 impl Drop for WriteBatch<'_> {
     fn drop(&mut self) {
         if let Some(tx) = self.tx.take() {
             let _ = tx.rollback();
-            eprintln!("Rolled back transaction");
         }
     }
 }

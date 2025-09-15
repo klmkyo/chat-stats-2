@@ -24,13 +24,19 @@
 
 ## Processor Details
 - Inputs: one or more Messenger exports. Supports both legacy Facebook ZIPs and newer end‑to‑end (E2E) ZIPs; JSON files are also accepted in the CLI. Format is auto‑detected per file.
-- Normalization: data are mapped into a single SQLite DB with tables `user`, `conversation (type: dm|group, export_source: messenger:facebook|messenger:e2e)`, `message`, content tables (`message_text`, `message_image`, `message_video`, `message_gif`, `message_audio`), and `reaction`.
+- Normalization (non‑destructive, canonical model):
+  - `export` — one row per import group (all selected Facebook ZIPs are one export; each E2E ZIP is its own export). `meta_json` lists file paths; no checksums.
+  - `canonical_person`, `canonical_conversation` — identities used to unify entities across exports.
+  - `conversation` — per‑export instance with `type`, `image_uri`, `name`, `export_id`, `canonical_conversation_id`.
+  - `person` — per‑conversation participant with `conversation_id`, `name`, `avatar_uri`, `canonical_person_id`.
+  - `message` — references only `sender` (a `person`); conversation inferred via `person.conversation_id`.
+  - Content tables: `message_text`, `message_image`, `message_video`, `message_gif`, `message_audio(length_seconds)`; `reaction(reactor_id, message_id)`.
+  - Cascades: deleting an `export` deletes its conversations → persons → messages → content/reactions. Deleting a `person` deletes their messages and reactions; deleting a `message` deletes its reactions.
 - Media handling: a global file index resolves media across multiple ZIPs. Audio length is computed in‑house (no ffmpeg at runtime) and stored as `message_audio.length_seconds`.
 - Output: one DB file ready for the app to open and query. Example with CLI:
   - `pnpm nx run processor-cli:run -- normalize-messenger --db dist/chats.sqlite exports/messenger_*.zip`
-- Post‑processing: the CLI runs a merge step to deduplicate DM conversations seen in both formats.
-- Extensibility: the schema is migration‑backed; additional computed metadata (e.g., future sentiment scores, topic tags) can be added without breaking existing imports.
- - Client access: the Expo client should obtain stats by querying the SQLite DB directly, with minimal JS postprocessing. Prefer moving heavy or reusable aggregations into SQL or the processor.
+- Post‑processing: the CLI performs non‑destructive linking of duplicate DM conversations across formats by assigning the same `canonical_conversation_id` (no message moves, no deletes). Unmatched remain as‑is.
+- Client access: the Expo client should obtain stats by querying the SQLite DB directly, with minimal JS postprocessing. Prefer moving heavy or reusable aggregations into SQL or the processor.
 
 ## Build, Test, and Development Commands
 - Install deps: `pnpm install`
@@ -75,4 +81,5 @@
 - For iOS builds, ensure `processor:build-ios` precedes `mobile-client:prebuild` (wired via `sync-processor`).
 
 ## Agent Notes
-- Keep this AGENTS.md updated. When adding features, commands, schema changes, or build/bridge nuances, add concise notes here so future contributors and agents have a single source of truth.
+- Keep this AGENTS.md updated. When adding features, commands, schema changes, or build/bridge nuances, add concise notes here so future contributors and agents have a single source of truth. You can edit any part of this file.
+ - Active development policy: backward-compat migrations are not required. It’s acceptable to change the schema without adding up/down migrations; consumers should recreate local DBs as needed. The CLI currently overwrites the DB path for runs, and the mobile app may drop/rebuild during pre-release.
