@@ -6,17 +6,13 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Create a custom color that uses a CSS custom value
         primary: 'rgb(var(--color-primary) / <alpha-value>)',
+        background: 'rgb(var(--color-background) / <alpha-value>)',
+        card: 'rgb(var(--color-card) / <alpha-value>)',
+        text: 'rgb(var(--color-text) / <alpha-value>)',
+        border: 'rgb(var(--color-border) / <alpha-value>)',
+        notification: 'rgb(var(--color-notification) / <alpha-value>)',
       },
     },
   },
-  plugins: [
-    ({ addBase }) =>
-      addBase({
-        ':root': {
-          '--color-primary': '255 0 0',
-        },
-      }),
-  ],
 }

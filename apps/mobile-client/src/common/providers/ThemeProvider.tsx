@@ -1,4 +1,9 @@
-import { ColorThemesCssVariables, ColorThemesHex, RNNThemes, Theme } from '@/constants/colors'
+import {
+  ColorThemesCssVariables,
+  ColorThemesHex,
+  RNNThemes,
+  Theme,
+} from '@/common/constants/colors'
 import { ThemeProvider as RNNThemeProvider } from '@react-navigation/native'
 import { useColorScheme } from 'nativewind'
 import React, { createContext, useContext, useMemo } from 'react'

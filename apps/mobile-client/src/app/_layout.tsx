@@ -1,4 +1,4 @@
-import { ThemeProvider, useTheme } from '@/providers/ThemeProvider'
+import { ThemeProvider, useTheme } from '@/common/providers/ThemeProvider'
 import { Stack } from 'expo-router'
 
 import '../global.css'
@@ -11,28 +11,20 @@ export default function RootLayout() {
   )
 }
 
-const themeColors = {
-  dark: {
-    backgroundColor: 'black',
-    textColor: 'white',
-  },
-  light: {
-    backgroundColor: 'white',
-    textColor: 'black',
-  },
-}
-
 const LayoutInner = () => {
-  const { theme } = useTheme()
+  const { themeColors } = useTheme()
 
   return (
     <Stack
       screenOptions={{
         headerStyle: {
-          backgroundColor: themeColors[theme].backgroundColor,
+          backgroundColor: themeColors.background,
         },
-        headerTintColor: themeColors[theme].textColor,
+        headerTintColor: themeColors.text,
+        headerLargeTitle: true,
       }}
-    />
+    >
+      <Stack.Screen name="(mainscreen)" options={{ headerShown: false }} />
+    </Stack>
   )
 }

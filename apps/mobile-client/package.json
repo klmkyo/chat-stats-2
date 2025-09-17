@@ -9,7 +9,8 @@
     "web": "expo start --web",
     "prebuild": "expo prebuild",
     "lint": "expo lint",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "check": "npm run format && npm run lint"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
@@ -17,8 +18,8 @@
     "@react-navigation/bottom-tabs": "^7.3.10",
     "@react-navigation/elements": "^2.3.8",
     "@react-navigation/native": "^7.1.6",
+    "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "cva": "^0.0.0",
     "expo": "~54.0.8",
     "expo-blur": "~15.0.7",
     "expo-constants": "~18.0.9",
