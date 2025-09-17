@@ -6,8 +6,11 @@
   "compilerOptions": {
     "strict": true,
     "paths": {
+      "@/modules/*": [
+        "./modules/*"
+      ],
       "@/*": [
-        "./*"
+        "./src/*"
       ]
     }
   },
