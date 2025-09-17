@@ -1,15 +1,14 @@
-import { ThemeProvider, useTheme } from "@/providers/ThemeProvider";
-import { Stack } from "expo-router";
+import { ThemeProvider, useTheme } from '@/providers/ThemeProvider'
+import { Stack } from 'expo-router'
 
-import "../global.css";
-
+import '../global.css'
 
 export default function RootLayout() {
   return (
     <ThemeProvider>
       <LayoutInner />
     </ThemeProvider>
-  );
+  )
 }
 
 const themeColors = {
@@ -23,10 +22,9 @@ const themeColors = {
   },
 }
 
-
 const LayoutInner = () => {
-  const { theme } = useTheme();
-  
+  const { theme } = useTheme()
+
   return (
     <Stack
       screenOptions={{
@@ -36,5 +34,5 @@ const LayoutInner = () => {
         headerTintColor: themeColors[theme].textColor,
       }}
     />
-  );
+  )
 }

@@ -1,16 +1,9 @@
 {
-  "platforms": [
-    "apple",
-    "android"
-  ],
+  "platforms": ["apple", "android"],
   "apple": {
-    "modules": [
-      "ProcessorBridgeModule"
-    ]
+    "modules": ["ProcessorBridgeModule"]
   },
   "android": {
-    "modules": [
-      "expo.modules.processorbridge.ProcessorBridgeModule"
-    ]
+    "modules": ["expo.modules.processorbridge.ProcessorBridgeModule"]
   }
 }

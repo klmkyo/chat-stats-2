@@ -1,4 +1,3 @@
-
 export function getKeys<T extends object>(obj: T): (keyof T)[] {
   return Object.keys(obj) as (keyof T)[]
 }
@@ -16,7 +15,7 @@ export function getEntries<T extends object>(obj: T) {
 }
 
 export const fromEntries = <const T extends readonly (readonly [PropertyKey, unknown])[]>(
-  entries: T
+  entries: T,
 ): { [K in T[number] as K[0]]: K[1] } => {
-  return Object.fromEntries(entries) as { [K in T[number] as K[0]]: K[1] };
-};
+  return Object.fromEntries(entries) as { [K in T[number] as K[0]]: K[1] }
+}

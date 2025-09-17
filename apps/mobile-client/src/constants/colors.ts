@@ -1,9 +1,9 @@
-import { hexToRgb } from "@/helpers/colors";
-import { fromEntries, getEntries } from "@/helpers/object";
-import { DarkTheme, DefaultTheme } from "@react-navigation/native";
-import { vars } from "nativewind";
+import { hexToRgb } from '@/helpers/colors'
+import { fromEntries, getEntries } from '@/helpers/object'
+import { DarkTheme, DefaultTheme } from '@react-navigation/native'
+import { vars } from 'nativewind'
 
-export type Theme = 'light' | 'dark';
+export type Theme = 'light' | 'dark'
 
 // Make sure to update tailwind.config.js when updating this
 export const ColorThemesHex = {
@@ -19,14 +19,10 @@ export const ColorThemesCssVariables = fromEntries(
   getEntries(ColorThemesHex).map(([theme, colors]) => [
     theme,
     vars(
-    fromEntries(
-      getEntries(colors).map(([key, value]) => [
-        `--color-${key}`,
-        hexToRgb(value),
-      ])
-    )),
-  ])
-);
+      fromEntries(getEntries(colors).map(([key, value]) => [`--color-${key}`, hexToRgb(value)])),
+    ),
+  ]),
+)
 
 export const RNNThemes = {
   light: {
@@ -41,4 +37,4 @@ export const RNNThemes = {
       ...DarkTheme.colors,
     },
   },
-} as const;
+} as const
