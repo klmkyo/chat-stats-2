@@ -68,21 +68,22 @@ class ZipPickerDelegate: NSObject, UIDocumentPickerDelegate {
           }
           return
         }
+        
 
         // Call Rust to process the ZIP file
-        if let cPtr = rust_zip_list_fd(Int32(ownedFd)) {
-          let text = String(cString: cPtr)
-          rust_string_free(cPtr)  // Always free the C string
-          await MainActor.run {
-            completion(.success(text))
-            releaseSelf()
-          }
-        } else {
-          await MainActor.run {
-            completion(.failure(ProcessorBridgeError.processingFailed.nsError))
-            releaseSelf()
-          }
-        }
+//        if let cPtr = rust_zip_list_fd(Int32(ownedFd)) {
+//          let text = String(cString: cPtr)
+//          rust_string_free(cPtr)  // Always free the C string
+//          await MainActor.run {
+//            completion(.success(text))
+//            releaseSelf()
+//          }
+//        } else {
+//          await MainActor.run {
+//            completion(.failure(ProcessorBridgeError.processingFailed.nsError))
+//            releaseSelf()
+//          }
+//        }
       } catch {
         await MainActor.run {
           completion(.failure(error as NSError))
