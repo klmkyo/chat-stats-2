@@ -1,4 +1,6 @@
 PODS:
+  - BVLinearGradient (2.8.3):
+    - React-Core
   - EXConstants (18.0.9):
     - ExpoModulesCore
   - EXJSONUtils (0.15.0)
@@ -1559,6 +1561,28 @@ PODS:
     - React-RCTFBReactNativeSpec
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
+  - react-native-mmkv (3.3.1):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - react-native-safe-area-context (5.6.1):
     - hermes-engine
     - RCTRequired
@@ -2228,6 +2252,7 @@ PODS:
   - Yoga (0.0.0)
 
 DEPENDENCIES:
+  - "BVLinearGradient (from `../../../node_modules/.pnpm/react-native-linear-gradient@2.8.3_react-native@0.81.4_@babel+core@7.28.3_@types+react@_19f46a064de326e215dac766c5c6b7fd/node_modules/react-native-linear-gradient`)"
   - "EXConstants (from `../../../node_modules/.pnpm/expo-constants@18.0.9_expo@54.0.8_react-native@0.81.4_@babel+core@7.28.3_@types+react@19.1.13_react@19.1.0_/node_modules/expo-constants/ios`)"
   - "EXJSONUtils (from `../../../node_modules/.pnpm/expo-json-utils@0.15.0/node_modules/expo-json-utils/ios`)"
   - "EXManifests (from `../../../node_modules/.pnpm/expo-manifests@1.0.8_expo@54.0.8/node_modules/expo-manifests/ios`)"
@@ -2288,6 +2313,7 @@ DEPENDENCIES:
   - "React-logger (from `../../../node_modules/.pnpm/react-native@0.81.4_@babel+core@7.28.3_@types+react@19.1.13_react@19.1.0/node_modules/react-native/ReactCommon/logger`)"
   - "React-Mapbuffer (from `../../../node_modules/.pnpm/react-native@0.81.4_@babel+core@7.28.3_@types+react@19.1.13_react@19.1.0/node_modules/react-native/ReactCommon`)"
   - "React-microtasksnativemodule (from `../../../node_modules/.pnpm/react-native@0.81.4_@babel+core@7.28.3_@types+react@19.1.13_react@19.1.0/node_modules/react-native/ReactCommon/react/nativemodule/microtasks`)"
+  - "react-native-mmkv (from `../../../node_modules/.pnpm/react-native-mmkv@3.3.1_react-native@0.81.4_@babel+core@7.28.3_@types+react@19.1.13_react@19.1.0__react@19.1.0/node_modules/react-native-mmkv`)"
   - "react-native-safe-area-context (from `../../../node_modules/.pnpm/react-native-safe-area-context@5.6.1_react-native@0.81.4_@babel+core@7.28.3_@types+reac_48a8e2f0f66efff69ee553df46410412/node_modules/react-native-safe-area-context`)"
   - "react-native-webview (from `../../../node_modules/.pnpm/react-native-webview@13.15.0_react-native@0.81.4_@babel+core@7.28.3_@types+react@19.1.13_react@19.1.0__react@19.1.0/node_modules/react-native-webview`)"
   - "React-NativeModulesApple (from `../../../node_modules/.pnpm/react-native@0.81.4_@babel+core@7.28.3_@types+react@19.1.13_react@19.1.0/node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)"
@@ -2338,6 +2364,8 @@ SPEC REPOS:
     - SDWebImageWebPCoder
 
 EXTERNAL SOURCES:
+  BVLinearGradient:
+    :path: "../../../node_modules/.pnpm/react-native-linear-gradient@2.8.3_react-native@0.81.4_@babel+core@7.28.3_@types+react@_19f46a064de326e215dac766c5c6b7fd/node_modules/react-native-linear-gradient"
   EXConstants:
     :path: "../../../node_modules/.pnpm/expo-constants@18.0.9_expo@54.0.8_react-native@0.81.4_@babel+core@7.28.3_@types+react@19.1.13_react@19.1.0_/node_modules/expo-constants/ios"
   EXJSONUtils:
@@ -2457,6 +2485,8 @@ EXTERNAL SOURCES:
     :path: "../../../node_modules/.pnpm/react-native@0.81.4_@babel+core@7.28.3_@types+react@19.1.13_react@19.1.0/node_modules/react-native/ReactCommon"
   React-microtasksnativemodule:
     :path: "../../../node_modules/.pnpm/react-native@0.81.4_@babel+core@7.28.3_@types+react@19.1.13_react@19.1.0/node_modules/react-native/ReactCommon/react/nativemodule/microtasks"
+  react-native-mmkv:
+    :path: "../../../node_modules/.pnpm/react-native-mmkv@3.3.1_react-native@0.81.4_@babel+core@7.28.3_@types+react@19.1.13_react@19.1.0__react@19.1.0/node_modules/react-native-mmkv"
   react-native-safe-area-context:
     :path: "../../../node_modules/.pnpm/react-native-safe-area-context@5.6.1_react-native@0.81.4_@babel+core@7.28.3_@types+reac_48a8e2f0f66efff69ee553df46410412/node_modules/react-native-safe-area-context"
   react-native-webview:
@@ -2535,6 +2565,7 @@ EXTERNAL SOURCES:
     :path: "../../../node_modules/.pnpm/react-native@0.81.4_@babel+core@7.28.3_@types+react@19.1.13_react@19.1.0/node_modules/react-native/ReactCommon/yoga"
 
 SPEC CHECKSUMS:
+  BVLinearGradient: cb006ba232a1f3e4f341bb62c42d1098c284da70
   EXConstants: a95804601ee4a6aa7800645f9b070d753b1142b3
   EXJSONUtils: 1d3e4590438c3ee593684186007028a14b3686cd
   EXManifests: 224345a575fca389073c416297b6348163f28d1a
@@ -2597,6 +2628,7 @@ SPEC CHECKSUMS:
   React-logger: 7b234de35acb469ce76d6bbb0457f664d6f32f62
   React-Mapbuffer: fbe1da882a187e5898bdf125e1cc6e603d27ecae
   React-microtasksnativemodule: 76905804171d8ccbe69329fc84c57eb7934add7f
+  react-native-mmkv: 6ee361e2515d9eada636fc21c85612f27f20e0ef
   react-native-safe-area-context: 42a1b4f8774b577d03b53de7326e3d5757fe9513
   react-native-webview: b29007f4723bca10872028067b07abacfa1cb35a
   React-NativeModulesApple: a9464983ccc0f66f45e93558671f60fc7536e438
