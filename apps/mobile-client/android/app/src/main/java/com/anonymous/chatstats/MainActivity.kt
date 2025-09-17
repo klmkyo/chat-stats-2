@@ -1,4 +1,4 @@
-package com.todo.chatstats
+package com.anonymous.chatstats
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

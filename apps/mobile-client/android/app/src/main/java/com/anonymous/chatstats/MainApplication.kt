@@ -1,4 +1,4 @@
-package com.todo.chatstats
+package com.anonymous.chatstats
 
 import android.app.Application
 import android.content.res.Configuration
