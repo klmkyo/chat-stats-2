@@ -1,7 +1,7 @@
 import { SearchPageContents } from '@/features/search/SearchPageContents'
 import { Stack } from 'expo-router'
 
-const SettingsPage = () => {
+const SearchPage = () => {
   return (
     <>
       <Stack.Screen
@@ -9,8 +9,9 @@ const SettingsPage = () => {
           headerTransparent: true,
           headerTitle: 'Search',
           headerSearchBarOptions: {
-            placement: 'automatic',
+            placement: 'integratedCentered',
             placeholder: 'Search',
+            autoFocus: true,
           },
         }}
       />
@@ -20,4 +21,4 @@ const SettingsPage = () => {
   )
 }
 
-export default SettingsPage
+export default SearchPage
