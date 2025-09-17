@@ -7,4 +7,83 @@
    <FileRef
       location = "group:Pods/Pods.xcodeproj">
    </FileRef>
+   <Group
+      location = "group:../modules/processor-bridge/ios"
+      name = "ProcessorBridge">
+      <FileRef
+         location = "group:processor.h">
+      </FileRef>
+      <FileRef
+         location = "group:ProcessorBridgeModule.swift">
+      </FileRef>
+      <FileRef
+         location = "group:ZipPickerDelegate.swift">
+      </FileRef>
+      <FileRef
+         location = "group:ProcessorBridgeView.swift">
+      </FileRef>
+      <Group
+         location = "group:"
+         name = "Pod">
+         <FileRef
+            location = "group:ProcessorBridge.podspec">
+         </FileRef>
+      </Group>
+      <Group
+         location = "group:../../../ios/Pods/Target Support Files/ProcessorBridge"
+         name = "Support Files">
+         <FileRef
+            location = "group:ProcessorBridge.modulemap">
+         </FileRef>
+         <FileRef
+            location = "group:ProcessorBridge-dummy.m">
+         </FileRef>
+         <FileRef
+            location = "group:ProcessorBridge-prefix.pch">
+         </FileRef>
+         <FileRef
+            location = "group:ProcessorBridge-umbrella.h">
+         </FileRef>
+         <FileRef
+            location = "group:ProcessorBridge.debug.xcconfig">
+         </FileRef>
+         <FileRef
+            location = "group:ProcessorBridge.release.xcconfig">
+         </FileRef>
+      </Group>
+      <Group
+         location = "group:Vendored"
+         name = "Vendored">
+         <Group
+            location = "group:Processor"
+            name = "Processor">
+            <Group
+               location = "group:Processor.xcframework"
+               name = "Processor.xcframework">
+               <Group
+                  location = "group:ios-arm64"
+                  name = "ios-arm64">
+                  <Group
+                     location = "group:Headers"
+                     name = "Headers">
+                     <FileRef
+                        location = "group:processor.h">
+                     </FileRef>
+                  </Group>
+               </Group>
+               <Group
+                  location = "group:ios-arm64-simulator"
+                  name = "ios-arm64-simulator">
+                  <Group
+                     location = "group:Headers"
+                     name = "Headers">
+                     <FileRef
+                        location = "group:processor.h">
+                     </FileRef>
+                  </Group>
+               </Group>
+            </Group>
+         </Group>
+      </Group>
+   </Group>
 </Workspace>
