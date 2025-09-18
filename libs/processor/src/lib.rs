@@ -14,6 +14,7 @@
 pub mod database;
 pub mod ffi;
 pub mod importers;
+pub mod progress;
 pub mod utils;
 
 pub const APP_NAME: &str = "Chat Processor";

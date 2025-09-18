@@ -13,6 +13,7 @@ use zip::ZipArchive;
 use crate::database::WriteBatch;
 use crate::importers::messenger::utils::{ensure_conversation, ensure_person_in_conversation};
 use crate::importers::messenger::ImportState;
+use crate::progress::ImportProgressTracker;
 use crate::utils::audio::detect_duration_seconds;
 
 pub mod json;
@@ -26,9 +27,11 @@ pub fn import_facebook_archive<R: std::io::Seek + std::io::Read>(
     export_id: i64,
     batch: &mut WriteBatch<'_>,
     state: &mut ImportState,
+    progress: &mut ImportProgressTracker,
 ) -> Result<()> {
     let is_messages_re = &paths::MESSAGES_RE;
     let entries = paths::collect_message_entries(archive, is_messages_re);
+    progress.add_total(entries.len() as u32);
     for (_thread_dir, _num, json_path) in entries.into_iter() {
         let mut json_content = String::new();
         {
@@ -62,6 +65,8 @@ pub fn import_facebook_archive<R: std::io::Seek + std::io::Read>(
             batch,
             state,
         )?;
+
+        progress.advance(1);
     }
     Ok(())
 }

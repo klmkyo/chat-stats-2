@@ -10,7 +10,7 @@ export interface FileInfo {
 }
 
 declare class ProcessorBridgeModule extends NativeModule<ProcessorBridgeModuleEvents> {
-  pickAndListZip(): Promise<string[]>
+  importMessengerArchives(filePaths: string[], dbPath: string): Promise<number>
 }
 
 // This call loads the native module object from the JSI.

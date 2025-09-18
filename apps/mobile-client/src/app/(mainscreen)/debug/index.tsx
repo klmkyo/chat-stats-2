@@ -1,6 +1,7 @@
-import { DebugPageContents } from '@/features/debug/DebugPageContents'
-import { useDebugEnabled } from '@/common/hooks/useDebugEnabled'
 import { Redirect, Stack } from 'expo-router'
+
+import { useDebugEnabled } from '@/common/hooks/useDebugEnabled'
+import { DebugPageContents } from '@/features/debug/DebugPageContents'
 
 export default function DebugIndex() {
   const [debugEnabled] = useDebugEnabled()

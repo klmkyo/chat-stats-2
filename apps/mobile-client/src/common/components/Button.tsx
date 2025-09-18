@@ -63,6 +63,20 @@ export interface ButtonProps
   disabled?: boolean
 }
 
+// Separate ButtonText component for rendering button text with correct styles
+interface ButtonTextProps extends VariantProps<typeof buttonTextVariants> {
+  className?: string
+  children: React.ReactNode
+}
+
+export function ButtonText({ variant, size, className, children }: ButtonTextProps) {
+  return (
+    <ThemedText className={cn(buttonTextVariants({ variant, size }), className)}>
+      {children}
+    </ThemedText>
+  )
+}
+
 export function Button({
   variant,
   size,
@@ -82,9 +96,9 @@ export function Button({
       {...props}
     >
       {typeof children === 'string' ? (
-        <ThemedText className={cn(buttonTextVariants({ variant, size }), textClassName)}>
+        <ButtonText variant={variant} size={size} className={textClassName}>
           {children}
-        </ThemedText>
+        </ButtonText>
       ) : (
         children
       )}

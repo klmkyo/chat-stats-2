@@ -7,7 +7,7 @@ export default function Index() {
       <Stack.Screen
         options={{
           headerShown: true,
-          headerTitle: 'Home',
+          headerTitle: 'Chats',
           headerLargeTitle: true,
           headerTransparent: true,
         }}

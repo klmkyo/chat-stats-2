@@ -11,6 +11,7 @@ enum ProcessorBridgeError: Int, Error, LocalizedError {
   case fileAccessDenied = 1002
   case fileDescriptorFailed = 1003
   case processingFailed = 1004
+  case invalidDatabasePath = 1005
 
   var errorDescription: String? {
     switch self {
@@ -19,6 +20,7 @@ enum ProcessorBridgeError: Int, Error, LocalizedError {
     case .fileAccessDenied: return "Failed to access selected file"
     case .fileDescriptorFailed: return "Failed to duplicate file descriptor"
     case .processingFailed: return "Failed to process ZIP file"
+    case .invalidDatabasePath: return "Database path is invalid"
     }
   }
 
@@ -32,6 +34,37 @@ enum ProcessorBridgeError: Int, Error, LocalizedError {
 }
 
 public class ProcessorBridgeModule: Module {
+  private static var currentProgressModule: ProcessorBridgeModule?
+
+  private static let progressCallback: @convention(c) (UInt32, UInt32) -> Void = { processed, total in
+    ProcessorBridgeModule.handleProgress(processed: processed, total: total)
+  }
+
+  private static func handleProgress(processed: UInt32, total: UInt32) {
+    DispatchQueue.main.async {
+      guard let module = ProcessorBridgeModule.currentProgressModule else {
+        return
+      }
+
+      module.sendEvent(
+        "onImportProgress",
+        [
+          "processed": processed,
+          "total": total,
+        ])
+    }
+  }
+
+  private func beginProgressUpdates() {
+    ProcessorBridgeModule.currentProgressModule = self
+    processor_set_progress_callback(ProcessorBridgeModule.progressCallback)
+  }
+
+  private func endProgressUpdates() {
+    processor_clear_progress_callback()
+    ProcessorBridgeModule.currentProgressModule = nil
+  }
+
   // Each module class must implement the definition function. The definition consists of components
   // that describes the module's functionality and behavior.
   // See https://docs.expo.dev/modules/module-api for more details about available components.
@@ -42,35 +75,10 @@ public class ProcessorBridgeModule: Module {
     Name("ProcessorBridge")
 
     // Defines event names that the module can send to JavaScript.
-    Events("onChange")
+    Events("onChange", "onImportProgress")
 
-    // Function to pick a ZIP file and get its contents as JSON
-    AsyncFunction("pickAndListZip") { (promise: Promise) in
-      DispatchQueue.main.async {
-        guard let presenter = self.appContext?.utilities?.currentViewController() else {
-          promise.reject(ProcessorBridgeError.noViewController.nsError)
-          return
-        }
-
-        let picker = UIDocumentPickerViewController(
-          forOpeningContentTypes: [UTType.zip], asCopy: false)
-        // Allow selecting multiple ZIP files
-        picker.allowsMultipleSelection = true
-
-        let delegate = ZipPickerDelegate { result in
-          switch result {
-          case .success(let texts):
-            promise.resolve(texts)
-          case .failure(let error):
-            promise.reject(error)
-          }
-        }
-
-        // Retain delegate until completion
-        ZipPickerDelegate.hold(delegate)
-        picker.delegate = delegate
-        presenter.present(picker, animated: true)
-      }
+    AsyncFunction("pickAndListZip") { () -> [String] in
+      []
     }
 
     // Defines a JavaScript function that always returns a Promise and whose native code
@@ -82,6 +90,36 @@ public class ProcessorBridgeModule: Module {
         [
           "value": value
         ])
+    }
+
+    AsyncFunction("importMessengerArchives") { (filePaths: [String], dbPath: String) -> Int in
+      guard !dbPath.isEmpty else {
+        throw ProcessorBridgeError.invalidDatabasePath
+      }
+
+      if filePaths.isEmpty {
+        return 0
+      }
+
+      self.beginProgressUpdates()
+      defer { self.endProgressUpdates() }
+
+      let jsonData = try JSONSerialization.data(withJSONObject: filePaths, options: [])
+      guard let jsonString = String(data: jsonData, encoding: .utf8) else {
+        throw ProcessorBridgeError.processingFailed
+      }
+
+      let status = jsonString.withCString { filesPtr in
+        dbPath.withCString { databasePtr in
+          processor_import_files_json(filesPtr, databasePtr)
+        }
+      }
+
+      guard status == 0 else {
+        throw ProcessorBridgeError.processingFailed
+      }
+
+      return filePaths.count
     }
 
     // Enables the module to be used as a native view. Definition components that are accepted as part of the

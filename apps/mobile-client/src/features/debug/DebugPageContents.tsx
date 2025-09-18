@@ -1,8 +1,13 @@
+import { ReactNode } from 'react'
 import { Button } from '@/common/components/Button'
 import { useUserOnboarded } from '@/common/hooks/useUserOnboarded'
 import { DevSettings, ScrollView } from 'react-native'
 
-export const DebugPageContents = () => {
+type DebugPageContentsProps = {
+  children?: ReactNode
+}
+
+export const DebugPageContents = ({ children }: DebugPageContentsProps) => {
   const [, setUserOnboarded] = useUserOnboarded()
 
   const handleResetOnboarding = () => {
@@ -15,6 +20,7 @@ export const DebugPageContents = () => {
       <Button variant="secondary" onPress={handleResetOnboarding}>
         Reset onboarding state
       </Button>
+      {children}
     </ScrollView>
   )
 }

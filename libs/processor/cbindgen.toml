@@ -8,6 +8,9 @@ line_length = 100
 [export]
 include = [
   "processor_import_file",
+  "processor_import_files_json",
+  "processor_set_progress_callback",
+  "processor_clear_progress_callback",
   "processor_list_archive_contents",
   "processor_string_free",
 ]

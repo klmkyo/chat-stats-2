@@ -6,10 +6,16 @@ export type OnLoadEventPayload = {
 
 export type ProcessorBridgeModuleEvents = {
   onChange: (params: ChangeEventPayload) => void
+  onImportProgress: (params: ImportProgressEventPayload) => void
 }
 
 export type ChangeEventPayload = {
   value: string
+}
+
+export type ImportProgressEventPayload = {
+  processed: number
+  total: number
 }
 
 export type ProcessorBridgeViewProps = {

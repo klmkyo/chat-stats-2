@@ -12,10 +12,8 @@ export CARGO_TARGET_DIR=./dist/target
 
 mkdir -p dist/generated/include
 
-if [ ! -f "dist/generated/include/processor.h" ] || [ "src/lib.rs" -nt "dist/generated/include/processor.h" ]; then
-  echo -e "${BLUE}Generating C headers...${NC}"
-  cbindgen --config cbindgen.toml --crate processor --output dist/generated/include/processor.h
-fi
+echo -e "${BLUE}Generating C headers...${NC}"
+cbindgen --config cbindgen.toml --crate processor --output dist/generated/include/processor.h
 
 # TODO this should be some other NX step?
 TARGETS=("aarch64-apple-ios" "aarch64-apple-ios-sim")

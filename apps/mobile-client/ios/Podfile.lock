@@ -206,6 +206,8 @@ PODS:
     - ExpoModulesCore
   - ExpoBlur (15.0.7):
     - ExpoModulesCore
+  - ExpoDocumentPicker (14.0.7):
+    - ExpoModulesCore
   - ExpoFileSystem (19.0.14):
     - ExpoModulesCore
   - ExpoFont (14.0.8):
@@ -2265,6 +2267,7 @@ DEPENDENCIES:
   - "expo-dev-menu-interface (from `../../../node_modules/.pnpm/expo-dev-menu-interface@2.0.0_expo@54.0.8/node_modules/expo-dev-menu-interface/ios`)"
   - "ExpoAsset (from `../../../node_modules/.pnpm/expo-asset@12.0.8_expo@54.0.8_react-native@0.81.4_@babel+core@7.28.3_@types+react@19.1.13_react@19.1.0__react@19.1.0/node_modules/expo-asset/ios`)"
   - "ExpoBlur (from `../../../node_modules/.pnpm/expo-blur@15.0.7_expo@54.0.8_react-native@0.81.4_@babel+core@7.28.3_@types+react@19.1.13_react@19.1.0__react@19.1.0/node_modules/expo-blur/ios`)"
+  - "ExpoDocumentPicker (from `../../../node_modules/.pnpm/expo-document-picker@14.0.7_expo@54.0.8/node_modules/expo-document-picker/ios`)"
   - "ExpoFileSystem (from `../../../node_modules/.pnpm/expo-file-system@19.0.14_expo@54.0.8_react-native@0.81.4_@babel+core@7.28.3_@types+react@19.1.13_react@19.1.0_/node_modules/expo-file-system/ios`)"
   - "ExpoFont (from `../../../node_modules/.pnpm/expo-font@14.0.8_expo@54.0.8_react-native@0.81.4_@babel+core@7.28.3_@types+react@19.1.13_react@19.1.0__react@19.1.0/node_modules/expo-font/ios`)"
   - "ExpoHaptics (from `../../../node_modules/.pnpm/expo-haptics@15.0.7_expo@54.0.8/node_modules/expo-haptics/ios`)"
@@ -2389,6 +2392,8 @@ EXTERNAL SOURCES:
     :path: "../../../node_modules/.pnpm/expo-asset@12.0.8_expo@54.0.8_react-native@0.81.4_@babel+core@7.28.3_@types+react@19.1.13_react@19.1.0__react@19.1.0/node_modules/expo-asset/ios"
   ExpoBlur:
     :path: "../../../node_modules/.pnpm/expo-blur@15.0.7_expo@54.0.8_react-native@0.81.4_@babel+core@7.28.3_@types+react@19.1.13_react@19.1.0__react@19.1.0/node_modules/expo-blur/ios"
+  ExpoDocumentPicker:
+    :path: "../../../node_modules/.pnpm/expo-document-picker@14.0.7_expo@54.0.8/node_modules/expo-document-picker/ios"
   ExpoFileSystem:
     :path: "../../../node_modules/.pnpm/expo-file-system@19.0.14_expo@54.0.8_react-native@0.81.4_@babel+core@7.28.3_@types+react@19.1.13_react@19.1.0_/node_modules/expo-file-system/ios"
   ExpoFont:
@@ -2581,6 +2586,7 @@ SPEC CHECKSUMS:
   expo-dev-menu-interface: 600df12ea01efecdd822daaf13cc0ac091775533
   ExpoAsset: 84810d6fed8179f04d4a7a4a6b37028bbd726e26
   ExpoBlur: 2dd8f64aa31f5d405652c21d3deb2d2588b1852f
+  ExpoDocumentPicker: 2200eefc2817f19315fa18f0147e0b80ece86926
   ExpoFileSystem: 4fb06865906e781329eb67166bd64fc4749c3019
   ExpoFont: 86ceec09ffed1c99cfee36ceb79ba149074901b5
   ExpoHaptics: 807476b0c39e9d82b7270349d6487928ce32df84
@@ -2596,7 +2602,7 @@ SPEC CHECKSUMS:
   ExpoWebBrowser: 533bc2a1b188eec1c10e4926decf658f1687b5e5
   EXUpdatesInterface: 5adf50cb41e079c861da6d9b4b954c3db9a50734
   FBLazyVector: 9e0cd874afd81d9a4d36679daca991b58b260d42
-  hermes-engine: e3c59961118630332d6f4f9dbef0dece625f6b76
+  hermes-engine: 35c763d57c9832d0eef764316ca1c4d043581394
   libavif: 84bbb62fb232c3018d6f1bab79beea87e35de7b7
   libdav1d: 23581a4d8ec811ff171ed5e2e05cd27bad64c39f
   libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8
@@ -2607,7 +2613,7 @@ SPEC CHECKSUMS:
   React: 2073376f47c71b7e9a0af7535986a77522ce1049
   React-callinvoker: 00fa0972a70df7408a4f088144b67207b157e386
   React-Core: d375dd308561785c739a621a21802e5e7e047dee
-  React-Core-prebuilt: 28828391105342fbc48b692e7b4a6f985f011361
+  React-Core-prebuilt: dde79b89f8863efebb1d532a3335f472927da669
   React-CoreModules: 3eb9b1410a317987c557afc683cc50099562c91d
   React-cxxreact: 724210b64158d97f150d8d254a7319e73ef77ee7
   React-debug: c01d176522cf57cdc4a4a66d1974968fcf497f32

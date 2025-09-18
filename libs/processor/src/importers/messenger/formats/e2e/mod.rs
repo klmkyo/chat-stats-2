@@ -13,6 +13,8 @@ use anyhow::{Context, Result};
 use std::io::{Read, Seek};
 use zip::read::ZipArchive;
 
+use crate::progress::ImportProgressTracker;
+
 pub mod json;
 
 /// Detect if a ZIP archive is the new E2E format: root contains json files and a `media/` dir.
@@ -39,6 +41,7 @@ pub fn import_e2e_archive<R: Seek + Read>(
     export_id: i64,
     batch: &mut WriteBatch<'_>,
     state: &mut ImportState,
+    progress: &mut ImportProgressTracker,
 ) -> Result<()> {
     // Iterate root-level JSON files.
     let root_jsons: Vec<String> = archive
@@ -46,6 +49,8 @@ pub fn import_e2e_archive<R: Seek + Read>(
         .filter(|name| !name.contains('/') && name.ends_with(".json"))
         .map(|s| s.to_string())
         .collect();
+
+    progress.add_total(root_jsons.len() as u32);
 
     for json_path in root_jsons {
         let mut json_content = String::new();
@@ -58,6 +63,7 @@ pub fn import_e2e_archive<R: Seek + Read>(
         }
 
         import_e2e_json(archive, &json_content, export_id, batch, state)?;
+        progress.advance(1);
     }
     Ok(())
 }
