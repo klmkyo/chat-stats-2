@@ -1,5 +1,6 @@
 use clap::{Parser, Subcommand};
 use processor::{self, database::MessageDb, APP_NAME};
+use std::fs;
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -13,7 +14,7 @@ struct Cli {
 enum Commands {
     /// Import mixed Messenger/E2E exports (ZIP or JSON) into a normalized SQLite DB
     NormalizeMessenger {
-        /// Output SQLite DB path (will be overwritten)
+        /// SQLite DB path to update (must already exist with schema applied)
         #[arg(long)]
         db: PathBuf,
         /// Input files: any mix of old ZIPs, new E2E ZIPs, or JSON files
@@ -32,9 +33,24 @@ fn main() {
                 std::process::exit(2);
             }
 
-            // Active dev: recreate DB for this run
-            if db.exists() {
-                let _ = std::fs::remove_file(&db);
+            match fs::metadata(&db) {
+                Ok(meta) => {
+                    if !meta.is_file() {
+                        eprintln!(
+                            "Database path '{}' must be a file created and migrated ahead of time.",
+                            db.display()
+                        );
+                        std::process::exit(2);
+                    }
+                }
+                Err(err) => {
+                    eprintln!(
+                        "Database '{}' is not available ({}). Create and migrate the SQLite file before running this command.",
+                        db.display(),
+                        err
+                    );
+                    std::process::exit(2);
+                }
             }
 
             // Stage 1: Import everything into normalized DB with export_source

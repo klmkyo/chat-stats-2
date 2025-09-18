@@ -1,12 +1,10 @@
-use std::fs;
 use std::path::{Path, PathBuf};
 
-use anyhow::{Context, Result};
-use rusqlite::{params, Connection, Transaction};
-use rusqlite_migration::{Migrations, M};
+use anyhow::{bail, Context, Result};
+use rusqlite::{params, Connection, OpenFlags, Transaction};
 use serde::{Deserialize, Serialize};
 
-/// Thin wrapper around a `rusqlite` connection that ensures schema is ready.
+/// Thin wrapper around a `rusqlite` connection for message database access.
 pub struct MessageDb {
     path: PathBuf,
     conn: Connection,
@@ -35,18 +33,15 @@ impl ConversationType {
 }
 
 impl MessageDb {
-    /// Open (or create) a SQLite database at `db_path`, configure pragmas, and apply migrations.
+    /// Open an existing SQLite database at `db_path` and configure connection pragmas.
     pub fn open(db_path: impl AsRef<Path>) -> Result<Self> {
         let path = db_path.as_ref().to_path_buf();
 
-        if let Some(dir) = path.parent() {
-            if !dir.exists() {
-                fs::create_dir_all(dir)
-                    .with_context(|| format!("creating parent directory: {}", dir.display()))?;
-            }
+        if !path.exists() {
+            bail!("database file does not exist at {}", path.display());
         }
 
-        let mut conn = Connection::open(&path)
+        let conn = Connection::open_with_flags(&path, OpenFlags::SQLITE_OPEN_READ_WRITE)
             .with_context(|| format!("opening sqlite db at {}", path.display()))?;
 
         // Pragmas tuned for on-device analytics: many reads, occasional writes.
@@ -58,8 +53,6 @@ impl MessageDb {
             .context("enabling foreign_keys")?;
         conn.pragma_update(None, "busy_timeout", 5000_i64)
             .context("setting PRAGMA busy_timeout=5000")?;
-
-        Self::apply_migrations(&mut conn).context("applying migrations")?;
 
         Ok(Self { path, conn })
     }
@@ -78,109 +71,6 @@ impl MessageDb {
     /// Path to the underlying database file.
     pub fn path(&self) -> &Path {
         &self.path
-    }
-
-    fn apply_migrations(conn: &mut Connection) -> Result<()> {
-        // Tracked via SQLite PRAGMA user_version.
-        let migrations = Migrations::new(vec![M::up(
-            r#"
-                PRAGMA foreign_keys=ON;
-
-                CREATE TABLE IF NOT EXISTS export(
-                  id INTEGER PRIMARY KEY,
-                  source TEXT NOT NULL,
-                  checksum TEXT,
-                  imported_at INTEGER NOT NULL DEFAULT (unixepoch('now')),
-                  meta_json TEXT
-                );
-
-                CREATE TABLE IF NOT EXISTS canonical_person(
-                  id INTEGER PRIMARY KEY,
-                  display_name TEXT,
-                  avatar_uri TEXT,
-                  created_at INTEGER NOT NULL DEFAULT (unixepoch('now'))
-                );
-
-                CREATE TABLE IF NOT EXISTS canonical_conversation(
-                  id INTEGER PRIMARY KEY,
-                  type TEXT CHECK(type IN ('dm','group')) NOT NULL,
-                  name TEXT,
-                  created_at INTEGER NOT NULL DEFAULT (unixepoch('now'))
-                );
-
-                CREATE TABLE IF NOT EXISTS conversation(
-                  id INTEGER PRIMARY KEY,
-                  type TEXT CHECK(type IN ('dm','group')) NOT NULL,
-                  image_uri TEXT,
-                  name TEXT,
-                  export_id INTEGER NOT NULL REFERENCES export(id) ON DELETE CASCADE,
-                  canonical_conversation_id INTEGER NOT NULL REFERENCES canonical_conversation(id)
-                );
-
-                CREATE TABLE IF NOT EXISTS person(
-                  id INTEGER PRIMARY KEY,
-                  conversation_id INTEGER NOT NULL REFERENCES conversation(id) ON DELETE CASCADE,
-                  name TEXT,
-                  avatar_uri TEXT,
-                  canonical_person_id INTEGER NOT NULL REFERENCES canonical_person(id)
-                );
-
-                CREATE TABLE IF NOT EXISTS message(
-                  id INTEGER PRIMARY KEY,
-                  sender INTEGER NOT NULL REFERENCES person(id) ON DELETE CASCADE,
-                  sent_at INTEGER NOT NULL,  -- epoch seconds
-                  unsent INTEGER NOT NULL DEFAULT FALSE
-                );
-
-                CREATE TABLE IF NOT EXISTS message_text(
-                  id INTEGER PRIMARY KEY,
-                  message_id INTEGER NOT NULL REFERENCES message(id) ON DELETE CASCADE,
-                  text TEXT
-                );
-
-                CREATE TABLE IF NOT EXISTS message_image(
-                  id INTEGER PRIMARY KEY,
-                  message_id INTEGER NOT NULL REFERENCES message(id) ON DELETE CASCADE,
-                  image_uri TEXT
-                );
-
-                CREATE TABLE IF NOT EXISTS message_video(
-                  id INTEGER PRIMARY KEY,
-                  message_id INTEGER NOT NULL REFERENCES message(id) ON DELETE CASCADE,
-                  video_uri TEXT
-                );
-
-                CREATE TABLE IF NOT EXISTS message_gif(
-                  id INTEGER PRIMARY KEY,
-                  message_id INTEGER NOT NULL REFERENCES message(id) ON DELETE CASCADE,
-                  gif_uri TEXT
-                );
-
-                CREATE TABLE IF NOT EXISTS message_audio(
-                  id INTEGER PRIMARY KEY,
-                  message_id INTEGER NOT NULL REFERENCES message(id) ON DELETE CASCADE,
-                  audio_uri TEXT,
-                  length_seconds INTEGER
-                );
-
-                CREATE TABLE IF NOT EXISTS reaction(
-                  id INTEGER PRIMARY KEY,
-                  reactor_id INTEGER NOT NULL REFERENCES person(id) ON DELETE CASCADE,
-                  message_id INTEGER NOT NULL REFERENCES message(id) ON DELETE CASCADE,
-                  reaction TEXT
-                );
-
-                -- Indexes
-                CREATE INDEX IF NOT EXISTS idx_person_conversation ON person(conversation_id, id);
-                CREATE INDEX IF NOT EXISTS idx_person_canonical ON person(canonical_person_id);
-                CREATE INDEX IF NOT EXISTS idx_conversation_export ON conversation(export_id);
-                CREATE INDEX IF NOT EXISTS idx_conversation_canonical ON conversation(canonical_conversation_id);
-                CREATE INDEX IF NOT EXISTS idx_message_sender_time ON message(sender, sent_at);
-                CREATE INDEX IF NOT EXISTS idx_reaction_message ON reaction(message_id);
-            "#,
-        )]);
-        migrations.to_latest(conn)?;
-        Ok(())
     }
 }
 

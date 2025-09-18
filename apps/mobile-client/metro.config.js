@@ -2,10 +2,10 @@ const { withNxMetro } = require('@nx/expo')
 const { getDefaultConfig } = require('expo/metro-config')
 const { withNativeWind } = require('nativewind/metro')
 
-const defaultConfig = getDefaultConfig(__dirname)
-
-const nxMetroPromise = withNxMetro(defaultConfig)
-
-module.exports = nxMetroPromise.then((config) =>
-  withNativeWind(config, { input: './src/global.css' }),
-)
+module.exports = (async () => {
+  const config = getDefaultConfig(__dirname)
+  const nxMetroConfig = await withNxMetro(config)
+  const nativeWindConfig = withNativeWind(nxMetroConfig, { input: './src/global.css' })
+  nativeWindConfig.resolver.sourceExts.push('sql')
+  return nativeWindConfig
+})()

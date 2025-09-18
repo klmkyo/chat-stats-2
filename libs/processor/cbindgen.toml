@@ -9,7 +9,6 @@ line_length = 100
 include = [
   "processor_import_file",
   "processor_list_archive_contents",
-  "processor_ensure_database",
   "processor_string_free",
 ]
 

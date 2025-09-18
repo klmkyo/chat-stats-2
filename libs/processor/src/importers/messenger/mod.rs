@@ -74,7 +74,7 @@ fn determine_zip_format(path: &Path) -> Result<ExportFormat> {
 ///
 /// # Arguments
 /// * `paths` - List of file paths to import (ZIP archives or JSON files)
-/// * `db_path` - Path where the SQLite database should be created/updated
+/// * `db_path` - Path to the pre-initialized SQLite database to update
 pub fn import_to_database(paths: Vec<PathBuf>, db_path: &Path) -> Result<()> {
     let mut db = MessageDb::open(db_path)
         .with_context(|| format!("Failed to open SQLite database: {}", db_path.display()))?;

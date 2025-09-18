@@ -1,11 +1,25 @@
 {
-  "extends": ["expo/tsconfig.base", "../../tsconfig.json"],
+  "extends": [
+    "expo/tsconfig.base",
+    "../../tsconfig.json"
+  ],
   "compilerOptions": {
     "strict": true,
     "paths": {
-      "@/modules/*": ["./modules/*"],
-      "@/*": ["./src/*"]
+      "@/modules/*": [
+        "./modules/*"
+      ],
+      "@/*": [
+        "./src/*"
+      ]
     }
   },
-  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts", "nativewind-env.d.ts"]
+  "include": [
+    "drizzle/migrations.js",
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts",
+    "nativewind-env.d.ts"
+  ]
 }

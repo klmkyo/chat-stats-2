@@ -3,6 +3,10 @@ import { ThemeProvider, useTheme } from '@/common/providers/ThemeProvider'
 import { router, Stack, usePathname } from 'expo-router'
 import { useEffectOnceWhen } from 'rooks'
 
+import { QueryClientProvider } from '@/common/providers/QueryClientProvider'
+import { DbProvider } from '@/features/db/DbProvider'
+import { Suspense } from 'react'
+import { ActivityIndicator } from 'react-native'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import '../global.css'
 
@@ -49,9 +53,16 @@ const LayoutInner = () => {
 export default function RootLayout() {
   return (
     <ThemeProvider>
-      <SafeAreaProvider>
-        <LayoutInner />
-      </SafeAreaProvider>
+      {/* TODO splashcreen? */}
+      <Suspense fallback={<ActivityIndicator size="large" />}>
+        <SafeAreaProvider>
+          <QueryClientProvider>
+            <DbProvider>
+              <LayoutInner />
+            </DbProvider>
+          </QueryClientProvider>
+        </SafeAreaProvider>
+      </Suspense>
     </ThemeProvider>
   )
 }
