@@ -12,9 +12,25 @@
 		56ED7C34E19F91A34D8D4A07 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E456A3E6AF1D038A343D8B3 /* ExpoModulesProvider.swift */; };
 		5D43A16DC0708F9B37AE3EF8 /* libPods-mobileclient.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F2CF296F25AB70363B71117F /* libPods-mobileclient.a */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
+		C32FD7842E7B79B000997CA9 /* Processor.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = C32FD7832E7B79B000997CA9 /* Processor.xcframework */; };
+		C32FD7852E7B79B000997CA9 /* Processor.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = C32FD7832E7B79B000997CA9 /* Processor.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		C37A9F5584853C43CA6D248A /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = B790F3E90D31D616F3123069 /* PrivacyInfo.xcprivacy */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		C32FD7862E7B79B000997CA9 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				C32FD7852E7B79B000997CA9 /* Processor.xcframework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		13B07F961A680F5B00A75B9A /* mobileclient.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = mobileclient.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -23,8 +39,9 @@
 		7E456A3E6AF1D038A343D8B3 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-mobileclient/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = mobileclient/SplashScreen.storyboard; sourceTree = "<group>"; };
 		B0D27578511020821F4A80C5 /* Pods-mobileclient.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-mobileclient.release.xcconfig"; path = "Target Support Files/Pods-mobileclient/Pods-mobileclient.release.xcconfig"; sourceTree = "<group>"; };
-		B790F3E90D31D616F3123069 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = mobileclient/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		B790F3E90D31D616F3123069 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = mobileclient/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
+		C32FD7832E7B79B000997CA9 /* Processor.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = Processor.xcframework; path = "../modules/processor-bridge/ios/Vendored/Processor/Processor.xcframework"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = mobileclient/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* mobileclient-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "mobileclient-Bridging-Header.h"; path = "mobileclient/mobileclient-Bridging-Header.h"; sourceTree = "<group>"; };
@@ -37,6 +54,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C32FD7842E7B79B000997CA9 /* Processor.xcframework in Frameworks */,
 				5D43A16DC0708F9B37AE3EF8 /* libPods-mobileclient.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -50,7 +68,6 @@
 				F6A9B58D23C2F23B0AD7853E /* Pods-mobileclient.debug.xcconfig */,
 				B0D27578511020821F4A80C5 /* Pods-mobileclient.release.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
@@ -71,6 +88,7 @@
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				C32FD7832E7B79B000997CA9 /* Processor.xcframework */,
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
 				F2CF296F25AB70363B71117F /* libPods-mobileclient.a */,
 			);
@@ -147,6 +165,7 @@
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
 				0048D0998DB9FC1DA439CE0B /* [CP] Embed Pods Frameworks */,
+				C32FD7862E7B79B000997CA9 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);

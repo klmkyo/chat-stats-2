@@ -99,8 +99,7 @@ pub fn import_to_database(paths: Vec<PathBuf>, db_path: &Path) -> Result<()> {
     // Facebook: one export across all selected FB zips
     if !facebook_paths.is_empty() {
         let fb_meta_json = compute_group_meta(&facebook_paths);
-        let export_id =
-            batch.insert_export("messenger:facebook", None, Some(&fb_meta_json))?;
+        let export_id = batch.insert_export("messenger:facebook", None, Some(&fb_meta_json))?;
 
         for path in facebook_paths {
             import_facebook_zip(&path, export_id, &mut batch, &mut state)?;

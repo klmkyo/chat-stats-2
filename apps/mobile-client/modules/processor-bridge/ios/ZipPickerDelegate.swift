@@ -12,7 +12,7 @@ import UIKit
 import UniformTypeIdentifiers
 
 class ZipPickerDelegate: NSObject, UIDocumentPickerDelegate {
-  typealias Completion = (Result<String, NSError>) -> Void
+  typealias Completion = (Result<[String], NSError>) -> Void
   private let completion: Completion
 
   init(_ completion: @escaping Completion) {
@@ -38,57 +38,58 @@ class ZipPickerDelegate: NSObject, UIDocumentPickerDelegate {
 
   func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL])
   {
-    guard let url = urls.first else {
+    if urls.isEmpty {
       completion(.failure(ProcessorBridgeError.noFileSelected.nsError))
       releaseSelf()
       return
     }
 
-    // Perform heavy work off the main actor to keep UI responsive
     Task(priority: .userInitiated) { [self] in
-      guard url.startAccessingSecurityScopedResource() else {
-        await MainActor.run {
-          completion(.failure(ProcessorBridgeError.fileAccessDenied.nsError))
-          releaseSelf()
-        }
-        return
-      }
-      defer { url.stopAccessingSecurityScopedResource() }
+      var results: [String] = []
 
-      do {
-        let fh = try FileHandle(forReadingFrom: url)
-        defer { fh.closeFile() }
-
-        // Duplicate the file descriptor - Rust will take ownership and close it
-        let ownedFd = fcntl(fh.fileDescriptor, F_DUPFD_CLOEXEC, 0)
-        guard ownedFd >= 0 else {
+      for url in urls {
+        if !url.startAccessingSecurityScopedResource() {
           await MainActor.run {
-            completion(.failure(ProcessorBridgeError.fileDescriptorFailed.nsError))
+            completion(.failure(ProcessorBridgeError.fileAccessDenied.nsError))
             releaseSelf()
           }
           return
         }
-        
 
-        // Call Rust to process the ZIP file
-//        if let cPtr = rust_zip_list_fd(Int32(ownedFd)) {
-//          let text = String(cString: cPtr)
-//          rust_string_free(cPtr)  // Always free the C string
-//          await MainActor.run {
-//            completion(.success(text))
-//            releaseSelf()
-//          }
-//        } else {
-//          await MainActor.run {
-//            completion(.failure(ProcessorBridgeError.processingFailed.nsError))
-//            releaseSelf()
-//          }
-//        }
-      } catch {
-        await MainActor.run {
-          completion(.failure(error as NSError))
-          releaseSelf()
+        defer { url.stopAccessingSecurityScopedResource() }
+
+        do {
+          // For now, pass the file path to the Rust layer that returns a JSON string for each archive
+          let json: String? = url.path.withCString { cPath in
+            if let cPtr = processor_list_archive_contents(cPath) {
+              defer { processor_string_free(cPtr) }
+              return String(cString: cPtr)
+            } else {
+              return nil
+            }
+          }
+
+          guard let json = json else {
+            await MainActor.run {
+              completion(.failure(ProcessorBridgeError.processingFailed.nsError))
+              releaseSelf()
+            }
+            return
+          }
+
+          results.append(json)
+        } catch {
+          await MainActor.run {
+            completion(.failure(error as NSError))
+            releaseSelf()
+          }
+          return
         }
+      }
+
+      await MainActor.run {
+        completion(.success(results))
+        releaseSelf()
       }
     }
   }

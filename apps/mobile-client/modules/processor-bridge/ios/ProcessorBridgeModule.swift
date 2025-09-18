@@ -11,6 +11,7 @@ enum ProcessorBridgeError: Int, Error, LocalizedError {
   case fileAccessDenied = 1002
   case fileDescriptorFailed = 1003
   case processingFailed = 1004
+  case databaseInitializationFailed = 1005
 
   var errorDescription: String? {
     switch self {
@@ -19,6 +20,7 @@ enum ProcessorBridgeError: Int, Error, LocalizedError {
     case .fileAccessDenied: return "Failed to access selected file"
     case .fileDescriptorFailed: return "Failed to duplicate file descriptor"
     case .processingFailed: return "Failed to process ZIP file"
+    case .databaseInitializationFailed: return "Failed to initialize database"
     }
   }
 
@@ -54,11 +56,13 @@ public class ProcessorBridgeModule: Module {
 
         let picker = UIDocumentPickerViewController(
           forOpeningContentTypes: [UTType.zip], asCopy: false)
+        // Allow selecting multiple ZIP files
+        picker.allowsMultipleSelection = true
 
         let delegate = ZipPickerDelegate { result in
           switch result {
-          case .success(let text):
-            promise.resolve(text)
+          case .success(let texts):
+            promise.resolve(texts)
           case .failure(let error):
             promise.reject(error)
           }
@@ -80,6 +84,14 @@ public class ProcessorBridgeModule: Module {
         [
           "value": value
         ])
+    }
+ 
+    AsyncFunction("ensureDatabaseInitialized") { (dbPath: String) -> String in
+      let status = dbPath.withCString { processor_ensure_database($0) }
+      guard status == 0 else {
+        throw ProcessorBridgeError.databaseInitializationFailed
+      }
+      return dbPath
     }
 
     // Enables the module to be used as a native view. Definition components that are accepted as part of the

@@ -11,9 +11,6 @@
       location = "group:../modules/processor-bridge/ios"
       name = "ProcessorBridge">
       <FileRef
-         location = "group:processor.h">
-      </FileRef>
-      <FileRef
          location = "group:ProcessorBridgeModule.swift">
       </FileRef>
       <FileRef

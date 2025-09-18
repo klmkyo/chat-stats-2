@@ -8,6 +8,7 @@ use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_int};
 use std::path::Path;
 
+use crate::database::schema::MessageDb;
 use crate::importers::messenger::import_to_database;
 
 /// Import a chat export file (ZIP or JSON) into a SQLite database.
@@ -39,6 +40,31 @@ pub unsafe extern "C" fn processor_import_file(
     };
 
     match import_to_database(vec![file_path.into()], Path::new(db_path)) {
+        Ok(_) => 0,
+        Err(_) => -1,
+    }
+}
+
+/// Ensure the SQLite database exists at the provided path (creating it if needed).
+///
+/// # Arguments
+/// * `db_path` - Null-terminated C string path to the SQLite database file
+///
+/// # Returns
+/// * `0` on success
+/// * `-1` on error
+///
+/// # Safety
+/// - `db_path` must be a valid pointer to a null-terminated C string.
+/// - Pointer must be non-null and remain valid for the duration of the call.
+#[no_mangle]
+pub unsafe extern "C" fn processor_ensure_database(db_path: *const c_char) -> c_int {
+    let db_path = match CStr::from_ptr(db_path).to_str() {
+        Ok(s) => s,
+        Err(_) => return -1,
+    };
+
+    match MessageDb::open(Path::new(db_path)) {
         Ok(_) => 0,
         Err(_) => -1,
     }

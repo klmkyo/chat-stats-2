@@ -28,7 +28,10 @@ pub fn build_file_index(paths: &[PathBuf]) -> FileIndex {
                 // Build index entries for this archive
                 for name in archive.file_names() {
                     if is_audio_like(name) {
-                        let loc = FileLocation { zip_path: zp.clone(), entry_name: name.to_string() };
+                        let loc = FileLocation {
+                            zip_path: zp.clone(),
+                            entry_name: name.to_string(),
+                        };
                         idx.by_full.entry(name.to_string()).or_insert(loc.clone());
                         if !name.starts_with("./") {
                             let dot = format!("./{}", name);
@@ -72,8 +75,18 @@ fn is_audio_like(name: &str) -> bool {
     matches!(
         ext.as_deref(),
         Some(
-            "mp3" | "m4a" | "aac" | "wav" | "ogg" | "oga" | "opus" | "flac" | "mp4" | "mov" | "3gp" | "3gpp"
+            "mp3"
+                | "m4a"
+                | "aac"
+                | "wav"
+                | "ogg"
+                | "oga"
+                | "opus"
+                | "flac"
+                | "mp4"
+                | "mov"
+                | "3gp"
+                | "3gpp"
         )
     )
 }
-
