@@ -37,7 +37,7 @@ export const ChatsPageContents = () => {
         <View className="flex-row items-center justify-center gap-1.5">
           <IconSymbol name="lock" size={16} colorClassName="text-text/50" />
           <ThemedText className="text-sm text-text/50">
-            Chats are analyzed and stored privately on your device.
+            Your chats stay on your device - we keep things private.
           </ThemedText>
         </View>
       </SafeAreaView>
