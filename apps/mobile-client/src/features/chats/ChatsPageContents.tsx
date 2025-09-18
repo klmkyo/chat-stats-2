@@ -20,7 +20,7 @@ export const ChatsPageContents = () => {
       >
         <View className="mt-6">
           <ThemedText variant="title" color="secondary">
-            No chats imported yet.
+            No chats imported (yet).
           </ThemedText>
 
           <ThemedText color="secondary" className="mt-1">
