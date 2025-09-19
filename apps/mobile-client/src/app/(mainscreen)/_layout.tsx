@@ -7,7 +7,7 @@ export default function TabLayout() {
   const [debugEnabled] = useDebugEnabled()
 
   return (
-    <NativeTabs backgroundColor={themeColors.background}>
+    <NativeTabs backgroundColor={themeColors.background} tintColor={themeColors.primary}>
       <NativeTabs.Trigger name="(chats)">
         <Label>Chats</Label>
         <Icon sf="message" drawable="custom_android_drawable" />

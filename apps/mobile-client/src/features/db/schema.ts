@@ -1,12 +1,13 @@
 import { getValues } from "@/common/helpers/object";
 import { relations, sql } from "drizzle-orm";
 import {
-  check,
-  index,
-  integer,
-  sqliteTable,
-  text,
+    check,
+    index,
+    integer,
+    sqliteTable,
+    text,
 } from "drizzle-orm/sqlite-core";
+import { EExportSource } from "../chatapps/constants";
 
 export enum EConversationType {
   DM = "dm",
@@ -23,7 +24,7 @@ export const exportsTable = sqliteTable(
   "export",
   {
     id: integer("id").primaryKey(),
-    source: text("source").notNull(),
+    source: text("source", { enum: tsEnumToDrizzleEnum(EExportSource) }).notNull(),
     checksum: text("checksum"),
     importedAt: integer("imported_at", { mode: "number" })
       .notNull()

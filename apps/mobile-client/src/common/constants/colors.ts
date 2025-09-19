@@ -8,7 +8,7 @@ export type Theme = 'light' | 'dark'
 // Make sure to update tailwind.config.js when updating this
 export const ColorThemesHex = {
   light: {
-    primary: '#007AFF',
+    primary: '#AD4FFF',
     background: '#FFFFFF',
     card: '#F2F2F7',
     text: '#000000',
@@ -16,8 +16,8 @@ export const ColorThemesHex = {
     notification: '#FF3B30',
   },
   dark: {
-    primary: '#0A84FF',
-    background: '#000000',
+    primary: '#AD4FFF',
+    background: '#202020',
     card: '#1C1C1E',
     text: '#FFFFFF',
     border: '#38383A',

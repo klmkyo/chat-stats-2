@@ -1,7 +1,6 @@
-import { SFIconSymbol } from '@/common/constants/sf-icon-symbols'
-import { SymbolView, SymbolWeight } from 'expo-symbols'
-import { StyleProp, ViewStyle } from 'react-native'
+import { SymbolView } from 'expo-symbols'
 import { cssInterop } from 'react-native-css-interop'
+import { IconSymbolProps } from './IconSymbol.types'
 
 export function IconSymbol({
   name,
@@ -10,15 +9,7 @@ export function IconSymbol({
   style,
   weight = 'regular',
   ...props
-}: {
-  name: SFIconSymbol
-  size?: number
-  color?: string
-  style?: StyleProp<ViewStyle>
-  weight?: SymbolWeight
-  className?: string
-  colorClassName?: string
-}) {
+}: IconSymbolProps) {
   return (
     <SymbolView
       weight={weight}

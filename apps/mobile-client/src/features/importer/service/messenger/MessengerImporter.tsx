@@ -18,7 +18,7 @@ const INITIAL_PROGRESS: ImportProgress = {
   total: 0,
 }
 
-export const ImportModal = () => {
+export const MessengerImporter = () => {
   const [isImporting, setIsImporting] = useState(false)
   const [progress, setProgress] = useState<ImportProgress>(INITIAL_PROGRESS)
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
@@ -97,20 +97,20 @@ export const ImportModal = () => {
   const remaining = Math.max(progress.total - progress.processed, 0)
 
   return (
-    <View style={{ padding: 16 }}>
+    <View className="p-4">
       <ThemedText>Import Messenger chats</ThemedText>
       <ThemedText color="secondary">
         Choose your exported Messenger ZIP files to normalise into the local database.
       </ThemedText>
 
-      <View style={{ marginTop: 16 }}>
+      <View className="mt-4">
         <Button onPress={handleImport} disabled={isImporting}>
           {isImporting ? 'Importing…' : 'Select archives'}
         </Button>
       </View>
 
       {progress.total > 0 ? (
-        <View style={{ marginTop: 16 }}>
+        <View className="mt-4">
           <ThemedText>
             {progress.processed} / {progress.total} JSON files processed
           </ThemedText>
@@ -119,13 +119,13 @@ export const ImportModal = () => {
       ) : null}
 
       {statusMessage ? (
-        <View style={{ marginTop: 16 }}>
+        <View className="mt-4">
           <ThemedText>{statusMessage}</ThemedText>
         </View>
       ) : null}
 
       {errorMessage ? (
-        <View style={{ marginTop: 16 }}>
+        <View className="mt-4">
           <ThemedText color="destructive">{errorMessage}</ThemedText>
         </View>
       ) : null}
