@@ -75,7 +75,7 @@
 ## Testing Guidelines
 - Rust: unit tests with `#[cfg(test)]`; integration tests in `libs/processor/tests/*.rs` (e.g., `audio_duration.rs`). Some tests rely on `ffmpeg`; when missing, they skip gracefully.
 - Run selectively: `cargo test -p processor -- test_name`.
-- JS/TS: no dedicated tests yet.
+- JS/TS: no dedicated tests yet. When modifying Expo/mobile client code, always run `pnpm --filter mobile-client lint` and `pnpm exec tsc --noEmit -p apps/mobile-client/tsconfig.json` before handing off.
 
 ## Commit & Pull Request Guidelines
 - Use Conventional Commits (`feat:`, `fix:`, `refactor:`, `test:`, `chore:`) consistent with history.
