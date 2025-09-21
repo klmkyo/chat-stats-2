@@ -1,12 +1,5 @@
 {
   "mcpServers": {
-    "nx-mcp": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "nx-mcp@latest"
-      ]
-    },
     "RadonAi": {
       "url": "http://127.0.0.1:63266/mcp",
       "type": "http",
