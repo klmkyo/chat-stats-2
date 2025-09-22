@@ -1,9 +1,9 @@
-import { Button } from '@/common/components/Button'
+import { AnimatedButton } from '@/common/components/AnimatedButton'
+import { Dots } from '@/common/components/Dots'
 import { ThemedText } from '@/common/components/ThemedText'
-import { range } from '@/common/helpers/range'
 import { useUserOnboarded } from '@/common/hooks/useUserOnboarded'
 import { router } from 'expo-router'
-import { Dimensions, Pressable, View } from 'react-native'
+import { Dimensions, View } from 'react-native'
 import Animated, {
   interpolate,
   scrollTo,
@@ -20,36 +20,6 @@ import { runOnUISync } from 'react-native-worklets'
 
 const { width } = Dimensions.get('window')
 const TOTAL_STEPS = 3
-
-const Dot = ({
-  index,
-  x,
-  onPress,
-}: {
-  index: number
-  x: SharedValue<number>
-  onPress: () => void
-}) => {
-  const animatedStyle = useAnimatedStyle(() => {
-    const progress = x.value / width
-    const scale = interpolate(progress, [index - 1, index, index + 1], [0.8, 1.4, 0.8], 'clamp')
-    const opacity = interpolate(progress, [index - 1, index, index + 1], [0.5, 1, 0.5], 'clamp')
-
-    return {
-      transform: [{ scale }],
-      opacity,
-    }
-  })
-
-  return (
-    <Pressable onPress={onPress}>
-      <Animated.View
-        className="size-2.5 rounded-full mx-2 bg-black/70 dark:bg-white"
-        style={[animatedStyle]}
-      />
-    </Pressable>
-  )
-}
 
 const Step = ({
   children,
@@ -90,82 +60,6 @@ const Step = ({
   )
 }
 
-// TODO blur the text https://stackoverflow.com/questions/76696750/how-can-i-animate-the-expo-blur-view-intensity-using-react-native-reanimated
-// Some glow or expand animation when we get to the let's get started part
-export const AnimatedButton = ({
-  x,
-  onPress,
-  totalSteps = 3,
-}: {
-  x: SharedValue<number>
-  onPress: () => void
-  totalSteps: number
-}) => {
-  const finalStepIndex = totalSteps - 1
-
-  const moveByPx = 40
-
-  const normalTextStyle = useAnimatedStyle(() => {
-    const progress = x.value / width
-
-    const translateX = interpolate(
-      progress,
-      [finalStepIndex - 1, finalStepIndex - 0.5],
-      [0, -moveByPx],
-      'clamp',
-    )
-
-    const opacity = interpolate(
-      progress,
-      [finalStepIndex - 1, finalStepIndex - 0.5],
-      [1, 0],
-      'clamp',
-    )
-
-    return {
-      transform: [{ translateX }],
-      opacity,
-    }
-  })
-
-  const finalTextStyle = useAnimatedStyle(() => {
-    const progress = x.value / width
-
-    const translateX = interpolate(
-      progress,
-      [finalStepIndex - 0.5, finalStepIndex],
-      [moveByPx, 0],
-      'clamp',
-    )
-
-    const opacity = interpolate(progress, [finalStepIndex - 0.5, finalStepIndex], [0, 1], 'clamp')
-
-    return {
-      transform: [{ translateX }],
-      opacity,
-    }
-  })
-
-  return (
-    <View className="relative">
-      <Button size="lg" onPress={onPress}>
-        <View className="relative flex-1">
-          <Animated.Text className="text-center font-semibold text-white" style={normalTextStyle}>
-            Next
-          </Animated.Text>
-
-          <Animated.Text
-            className="absolute top-0 left-0 right-0 text-center font-semibold text-white"
-            style={finalTextStyle}
-          >
-            Let&apos;s get started
-          </Animated.Text>
-        </View>
-      </Button>
-    </View>
-  )
-}
-
 export const WelcomeModalContents = () => {
   const x = useSharedValue(0)
 
@@ -174,7 +68,17 @@ export const WelcomeModalContents = () => {
 
   const [, setUserOnboarded] = useUserOnboarded()
 
-  // Keep dots/animations in sync with actual scroll
+  const buttonProgress = useDerivedValue(() => {
+    const lastSlideProgress = x.value - (TOTAL_STEPS - 2) * width
+
+    return lastSlideProgress / width
+  })
+
+  // Normalized progress from 0 to 1 for Dots
+  const dotsProgress = useDerivedValue(() => {
+    return x.value / width
+  })
+
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
       x.value = event.contentOffset.x
@@ -242,15 +146,21 @@ export const WelcomeModalContents = () => {
         </Step>
       </Animated.ScrollView>
 
-      <View className="flex-row justify-center mt-12 mb-8">
-        {range(TOTAL_STEPS).map((_, i) => (
-          <Dot key={i} index={i} x={x} onPress={() => changeStep(i)} />
-        ))}
-      </View>
+      <Dots
+        progress={dotsProgress}
+        count={TOTAL_STEPS}
+        onDotPress={changeStep}
+        className="mt-12 mb-8"
+      />
 
       <SafeAreaView>
         <View className="px-10">
-          <AnimatedButton x={x} totalSteps={TOTAL_STEPS} onPress={handleButtonPress} />
+          <AnimatedButton
+            progress={buttonProgress}
+            normalText="Next"
+            finalText="Let's get started"
+            onPress={handleButtonPress}
+          />
         </View>
       </SafeAreaView>
     </View>

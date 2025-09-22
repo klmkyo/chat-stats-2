@@ -7,6 +7,7 @@ export const SFIconSymbols = [
   'lock',
   'chevron.right',
   'xmark',
+  'chevron.left',
 ] as const satisfies SFSymbol[]
 
 export type SFIconSymbol = (typeof SFIconSymbols)[number]

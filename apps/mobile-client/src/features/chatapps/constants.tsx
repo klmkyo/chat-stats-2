@@ -11,7 +11,7 @@ export enum EExportSource {
   WHATSAPP = 'whatsapp',
 }
 
-interface ExportBrandDetails {
+export interface ExportBrandDetails {
   brand: EExportBrand
   name: string
   icon: ImageSourcePropType
