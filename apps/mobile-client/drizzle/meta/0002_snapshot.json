@@ -136,16 +136,12 @@
       "indexes": {
         "idx_conversation_export": {
           "name": "idx_conversation_export",
-          "columns": [
-            "export_id"
-          ],
+          "columns": ["export_id"],
           "isUnique": false
         },
         "idx_conversation_canonical": {
           "name": "idx_conversation_canonical",
-          "columns": [
-            "canonical_conversation_id"
-          ],
+          "columns": ["canonical_conversation_id"],
           "isUnique": false
         }
       },
@@ -154,12 +150,8 @@
           "name": "conversation_export_id_export_id_fk",
           "tableFrom": "conversation",
           "tableTo": "export",
-          "columnsFrom": [
-            "export_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["export_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -167,12 +159,8 @@
           "name": "conversation_canonical_conversation_id_canonical_conversation_id_fk",
           "tableFrom": "conversation",
           "tableTo": "canonical_conversation",
-          "columnsFrom": [
-            "canonical_conversation_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["canonical_conversation_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -270,12 +258,8 @@
           "name": "message_audio_message_id_message_id_fk",
           "tableFrom": "message_audio",
           "tableTo": "message",
-          "columnsFrom": [
-            "message_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["message_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -315,12 +299,8 @@
           "name": "message_gif_message_id_message_id_fk",
           "tableFrom": "message_gif",
           "tableTo": "message",
-          "columnsFrom": [
-            "message_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["message_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -360,12 +340,8 @@
           "name": "message_image_message_id_message_id_fk",
           "tableFrom": "message_image",
           "tableTo": "message",
-          "columnsFrom": [
-            "message_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["message_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -405,12 +381,8 @@
           "name": "message_text_message_id_message_id_fk",
           "tableFrom": "message_text",
           "tableTo": "message",
-          "columnsFrom": [
-            "message_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["message_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -450,12 +422,8 @@
           "name": "message_video_message_id_message_id_fk",
           "tableFrom": "message_video",
           "tableTo": "message",
-          "columnsFrom": [
-            "message_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["message_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -500,10 +468,7 @@
       "indexes": {
         "idx_message_sender_time": {
           "name": "idx_message_sender_time",
-          "columns": [
-            "sender",
-            "sent_at"
-          ],
+          "columns": ["sender", "sent_at"],
           "isUnique": false
         }
       },
@@ -512,12 +477,8 @@
           "name": "message_sender_person_id_fk",
           "tableFrom": "message",
           "tableTo": "person",
-          "columnsFrom": [
-            "sender"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["sender"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -568,17 +529,12 @@
       "indexes": {
         "idx_person_conversation": {
           "name": "idx_person_conversation",
-          "columns": [
-            "conversation_id",
-            "id"
-          ],
+          "columns": ["conversation_id", "id"],
           "isUnique": false
         },
         "idx_person_canonical": {
           "name": "idx_person_canonical",
-          "columns": [
-            "canonical_person_id"
-          ],
+          "columns": ["canonical_person_id"],
           "isUnique": false
         }
       },
@@ -587,12 +543,8 @@
           "name": "person_conversation_id_conversation_id_fk",
           "tableFrom": "person",
           "tableTo": "conversation",
-          "columnsFrom": [
-            "conversation_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["conversation_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -600,12 +552,8 @@
           "name": "person_canonical_person_id_canonical_person_id_fk",
           "tableFrom": "person",
           "tableTo": "canonical_person",
-          "columnsFrom": [
-            "canonical_person_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["canonical_person_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -649,9 +597,7 @@
       "indexes": {
         "idx_reaction_message": {
           "name": "idx_reaction_message",
-          "columns": [
-            "message_id"
-          ],
+          "columns": ["message_id"],
           "isUnique": false
         }
       },
@@ -660,12 +606,8 @@
           "name": "reaction_reactor_id_person_id_fk",
           "tableFrom": "reaction",
           "tableTo": "person",
-          "columnsFrom": [
-            "reactor_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["reactor_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -673,12 +615,8 @@
           "name": "reaction_message_id_message_id_fk",
           "tableFrom": "reaction",
           "tableTo": "message",
-          "columnsFrom": [
-            "message_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["message_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }

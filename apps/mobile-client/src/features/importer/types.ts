@@ -18,4 +18,3 @@ export type ImportProgress = {
   total?: number
   message?: string
 }
-

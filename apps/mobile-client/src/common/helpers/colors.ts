@@ -7,20 +7,19 @@ export const hexToHexNumber = (hex: string) => {
   return parseInt(hex, 16)
 }
 
-
 // mixes 2 colors with a given ratio
 export const mixColors = (baseColor: string, mixColor: string, ratio: number) => {
   const baseColorRgb = hexToHexNumber(baseColor.replace('#', ''))
   const mixColorRgb = hexToHexNumber(mixColor.replace('#', ''))
 
   const baseRed = baseColorRgb >> 16
-  const baseGreen = (baseColorRgb >> 8) & 0xFF
-  const baseBlue = baseColorRgb & 0xFF
+  const baseGreen = (baseColorRgb >> 8) & 0xff
+  const baseBlue = baseColorRgb & 0xff
 
   const mixRed = mixColorRgb >> 16
-  const mixGreen = (mixColorRgb >> 8) & 0xFF
-  const mixBlue = mixColorRgb & 0xFF
-  
+  const mixGreen = (mixColorRgb >> 8) & 0xff
+  const mixBlue = mixColorRgb & 0xff
+
   const mixedRed = Math.round(mixRed * ratio + baseRed * (1 - ratio))
   const mixedGreen = Math.round(mixGreen * ratio + baseGreen * (1 - ratio))
   const mixedBlue = Math.round(mixBlue * ratio + baseBlue * (1 - ratio))

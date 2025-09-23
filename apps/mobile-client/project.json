@@ -5,31 +5,21 @@
       "options": {
         "cwd": "{projectRoot}"
       },
-      "inputs": [
-        "{workspaceRoot}/libs/processor/dist/*"
-      ],
-      "outputs": [
-        "{projectRoot}/modules/processor-bridge/ios/Vendored/Processor"
-      ],
+      "inputs": ["{workspaceRoot}/libs/processor/dist/*"],
+      "outputs": ["{projectRoot}/modules/processor-bridge/ios/Vendored/Processor"],
       "dependsOn": [
         {
           "target": "build-ios",
-          "projects": [
-            "processor"
-          ],
+          "projects": ["processor"],
           "params": "ignore"
         }
       ]
     },
     "prebuild": {
-      "dependsOn": [
-        "sync-processor"
-      ]
+      "dependsOn": ["sync-processor"]
     },
     "ios": {
-      "dependsOn": [
-        "sync-processor"
-      ]
+      "dependsOn": ["sync-processor"]
     }
   }
 }

@@ -1,17 +1,10 @@
 {
-  "extends": [
-    "expo/tsconfig.base",
-    "../../tsconfig.json"
-  ],
+  "extends": ["expo/tsconfig.base", "../../tsconfig.json"],
   "compilerOptions": {
     "strict": true,
     "paths": {
-      "@/modules/*": [
-        "./modules/*"
-      ],
-      "@/*": [
-        "./src/*"
-      ]
+      "@/modules/*": ["./modules/*"],
+      "@/*": ["./src/*"]
     }
   },
   "include": [

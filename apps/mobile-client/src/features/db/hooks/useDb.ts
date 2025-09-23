@@ -1,6 +1,6 @@
-import { ExpoSQLiteDatabase, useLiveQuery } from "drizzle-orm/expo-sqlite"
-import { useContext } from "react"
-import { DbContext } from "../DbProvider"
+import { ExpoSQLiteDatabase, useLiveQuery } from 'drizzle-orm/expo-sqlite'
+import { useContext } from 'react'
+import { DbContext } from '../DbProvider'
 
 export const useDb = () => {
   const context = useContext(DbContext)
