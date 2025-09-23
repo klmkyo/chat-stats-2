@@ -1,8 +1,7 @@
 import { EExportBrand } from '@/features/chatapps/constants'
 
 export type ImporterStackParamList = {
-  // slides
-  index: undefined
+  slides: undefined
   filePicker: undefined
   importProgress: undefined
 }
@@ -14,9 +13,9 @@ export type ManualStackParamList = {
 }
 
 export type ImportProgress = {
-  status: 'idle' | 'running' | 'success' | 'error',
-  processed?: number,
-  total?: number,
-  message?: string,
+  status: 'idle' | 'running' | 'success' | 'error'
+  processed?: number
+  total?: number
+  message?: string
 }
 

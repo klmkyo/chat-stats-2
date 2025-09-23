@@ -29,7 +29,7 @@ export const ChatsPageContents = () => {
           </ThemedText>
         </View>
 
-        <Button onPress={() => router.push('/(mainscreen)/(chats)/import')}>
+        <Button onPress={() => router.push('/import')}>
           <IconSymbol name="plus" size={20} color="white" />
           <ButtonText className="font-semibold">Import Chats</ButtonText>
         </Button>

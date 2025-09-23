@@ -1,15 +1,15 @@
 import { ThemedText } from '@/common/components/ThemedText'
 import { DATABASE_NAME } from '@/features/db/DbProvider'
+import { FilePickerLayout } from '@/features/importer/components/FilePickerLayout'
+import { useImporter } from '@/features/importer/context/ImporterContext'
+import ProcessorBridgeModule from '@/modules/processor-bridge/src/ProcessorBridgeModule'
 import * as DocumentPicker from 'expo-document-picker'
+import { useRouter } from 'expo-router'
 import { openDatabaseSync } from 'expo-sqlite'
 import { View } from 'react-native'
-import { useImporter } from '../../flow/ImporterContext'
 
-import ProcessorBridgeModule from '@/modules/processor-bridge/src/ProcessorBridgeModule'
-import { ImporterFlowImporterProps } from '../../flow/ImporterFlow'
-import { ImporterImporter } from '../../flow/ImporterImporterComponents'
-
-export const MessengerImporter = ({ navigation }: ImporterFlowImporterProps) => {
+export default function MessengerFilePickerScreen() {
+  const router = useRouter()
   const now = new Date()
   const day = now.getDate()
   const month = now.getMonth() + 1
@@ -48,7 +48,7 @@ export const MessengerImporter = ({ navigation }: ImporterFlowImporterProps) => 
       sqliteDb.closeSync()
 
       startImport()
-      navigation.navigation.navigate('importProgress')
+      router.push('/import/messenger/progress')
 
       await ProcessorBridgeModule.importMessengerArchives(filePaths, dbPath)
 
@@ -57,7 +57,6 @@ export const MessengerImporter = ({ navigation }: ImporterFlowImporterProps) => 
       const message = error instanceof Error ? error.message : 'Unknown error'
       const normalized = message.toLowerCase()
 
-      // Treat cancellations as a neutral outcome.
       if (normalized.includes('cancelled') || normalized.includes('canceled')) {
         failImport('Import cancelled.')
       } else {
@@ -69,10 +68,10 @@ export const MessengerImporter = ({ navigation }: ImporterFlowImporterProps) => 
   }
 
   return (
-    <ImporterImporter.Container>
-      <ImporterImporter.Header>Import Messenger chats</ImporterImporter.Header>
+    <FilePickerLayout.Container>
+      <FilePickerLayout.Header>Import Messenger chats</FilePickerLayout.Header>
 
-      <ImporterImporter.Description>
+      <FilePickerLayout.Description>
         <ThemedText>
           Select all the files that were exported. Their names should look like this:
         </ThemedText>
@@ -82,9 +81,9 @@ export const MessengerImporter = ({ navigation }: ImporterFlowImporterProps) => 
           </ThemedText>
           <ThemedText>{`\u25CF`} messages.zip</ThemedText>
         </View>
-      </ImporterImporter.Description>
+      </FilePickerLayout.Description>
 
-      <ImporterImporter.Button onPress={handleImport}>Select Files</ImporterImporter.Button>
-    </ImporterImporter.Container>
+      <FilePickerLayout.Button onPress={handleImport}>Select Files</FilePickerLayout.Button>
+    </FilePickerLayout.Container>
   )
 }

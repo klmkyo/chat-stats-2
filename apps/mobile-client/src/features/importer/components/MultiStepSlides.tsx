@@ -3,9 +3,6 @@ import { Dimensions, View } from 'react-native'
 import { AnimatedButton } from '@/common/components/AnimatedButton'
 import { Dots } from '@/common/components/Dots'
 import { ThemedText } from '@/common/components/ThemedText'
-import { isElementOfType } from '@/common/helpers/react-helpers'
-import { useHeaderHeight } from '@react-navigation/elements'
-import { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { ReactNode } from 'react'
 import Animated, {
   interpolate,
@@ -18,14 +15,24 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { runOnUISync } from 'react-native-worklets'
-import { ImporterStackParamList } from '../types'
-import { useImporter } from './ImporterContext'
-import { ImporterFlow } from './ImporterFlow'
 
 const { width } = Dimensions.get('window')
 
-const Step = ({ index, x, slide }: { index: number; x: SharedValue<number>; slide: ReactNode }) => {
+export type SlideInfo = {
+  title: string
+  subtitle: string
+  content: ReactNode
+}
+
+type MultiStepSlidesProps = {
+  slides: SlideInfo[]
+  brandDetails: { color: string }
+  onComplete: () => void
+}
+
+const Step = ({ index, x, slide }: { index: number; x: SharedValue<number>; slide: SlideInfo }) => {
   const animatedStyle = useAnimatedStyle(() => {
     const progress = x.value / width
     const translateX = interpolate(progress, [index - 1, index, index + 1], [50, 0, -50], 'clamp')
@@ -34,11 +41,7 @@ const Step = ({ index, x, slide }: { index: number; x: SharedValue<number>; slid
     }
   })
 
-  if (!isElementOfType(slide, ImporterFlow.Slide)) {
-    throw new Error('slide is not a ImporterFlow.Slide')
-  }
-
-  const { title, subtitle, children } = slide.props
+  const { title, subtitle, content } = slide
 
   return (
     <View className="flex-1 items-center p-8" style={{ width }}>
@@ -53,22 +56,13 @@ const Step = ({ index, x, slide }: { index: number; x: SharedValue<number>; slid
         style={[animatedStyle]}
         className="flex grow justify-center items-stretch self-stretch"
       >
-        {children}
+        {content}
       </Animated.View>
     </View>
   )
 }
 
-export const ImporterSlides = ({
-  navigation,
-}: NativeStackScreenProps<ImporterStackParamList, 'index'>) => {
-  const headerHeight = useHeaderHeight()
-
-  const {
-    components: { slides },
-    brandDetails,
-  } = useImporter()
-
+export const MultiStepSlides = ({ slides, brandDetails, onComplete }: MultiStepSlidesProps) => {
   const totalSteps = slides.length
 
   const x = useSharedValue(0)
@@ -80,17 +74,14 @@ export const ImporterSlides = ({
     return x.value / width
   })
 
-  // Progress from 0 to 1 for AnimatedButton
   const buttonProgress = useDerivedValue(() => {
     return interpolate(stepsProgress.value, [totalSteps - 2, totalSteps - 1], [0, 1], 'clamp')
   })
 
-  // Normalized progress from 0 to 1 for Dots
   const dotsProgress = useDerivedValue(() => {
     return x.value / width
   })
 
-  // Keep dots/animations in sync with actual scroll
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
       x.value = event.contentOffset.x
@@ -118,7 +109,7 @@ export const ImporterSlides = ({
     const step = getActiveStep()
     const isFinalStep = step === totalSteps - 1
     if (isFinalStep) {
-      navigation.navigate('filePicker')
+      onComplete()
     } else {
       changeStep(step + 1)
     }
@@ -135,8 +126,7 @@ export const ImporterSlides = ({
   })
 
   return (
-    // TODO the bottom marign is different than welcome screen
-    <View className="flex-1" style={{ paddingBottom: headerHeight }}>
+    <SafeAreaView className="flex-1">
       <Animated.ScrollView
         horizontal
         pagingEnabled
@@ -157,8 +147,7 @@ export const ImporterSlides = ({
         className="mt-12 mb-8"
       />
 
-      {/* This almost certainly seems like a bad idea, but it's the only way to get the safe area to work */}
-      <Animated.View className="px-10 shrink-0" style={[buttonOverscrollStyle]}>
+      <Animated.View className="px-10 shrink-0 pb-8" style={[buttonOverscrollStyle]}>
         <AnimatedButton
           progress={buttonProgress}
           normalText="Next"
@@ -167,6 +156,6 @@ export const ImporterSlides = ({
           style={{ backgroundColor: brandDetails.color }}
         />
       </Animated.View>
-    </View>
+    </SafeAreaView>
   )
 }

@@ -1,7 +1,7 @@
 import { ThemedText } from '@/common/components/ThemedText'
 import { View } from 'react-native'
 
-export const ImporterProgress = () => {
+export default function ImporterProgressScreen() {
   return (
     <View>
       <ThemedText>ImporterProgress</ThemedText>
