@@ -1,11 +1,12 @@
 import { ThemedText } from '@/common/components/ThemedText'
 import { EExportBrand } from '@/features/chatapps/constants'
 import { View } from 'react-native'
-import { ImporterFlow } from '../../importers/ImporterFlow'
+import { ImporterFlow } from '../../flow/ImporterFlow'
+import { MessengerImporter } from './MessengerImporter'
 
 export const MessengerImportFlow = () => {
   return (
-    <ImporterFlow brand={EExportBrand.MESSENGER}>
+    <ImporterFlow brand={EExportBrand.MESSENGER} importer={MessengerImporter}>
       <ImporterFlow.Slide
         title="Downloading Messages from Messenger"
         subtitle="In order to anlalyze your messages, you need to download them from Messenger first."

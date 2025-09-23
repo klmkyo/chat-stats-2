@@ -1,4 +1,4 @@
-import { Alert, Dimensions, View } from 'react-native'
+import { Dimensions, View } from 'react-native'
 
 import { AnimatedButton } from '@/common/components/AnimatedButton'
 import { Dots } from '@/common/components/Dots'
@@ -19,7 +19,9 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated'
 import { runOnUISync } from 'react-native-worklets'
-import { ImporterFlow, ImporterStackParamList, useImporter } from './ImporterFlow'
+import { ImporterStackParamList } from '../types'
+import { useImporter } from './ImporterContext'
+import { ImporterFlow } from './ImporterFlow'
 
 const { width } = Dimensions.get('window')
 
@@ -32,7 +34,6 @@ const Step = ({ index, x, slide }: { index: number; x: SharedValue<number>; slid
     }
   })
 
-  // assert that slide is a ImporterFlowSlide
   if (!isElementOfType(slide, ImporterFlow.Slide)) {
     throw new Error('slide is not a ImporterFlow.Slide')
   }
@@ -117,7 +118,7 @@ export const ImporterSlides = ({
     const step = getActiveStep()
     const isFinalStep = step === totalSteps - 1
     if (isFinalStep) {
-      Alert.alert('Analyze Messages')
+      navigation.navigate('filePicker')
     } else {
       changeStep(step + 1)
     }
