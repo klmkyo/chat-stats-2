@@ -4,7 +4,9 @@ import { ThemedText } from '@/common/components/ThemedText'
 import { cn } from '@/common/helpers/cn'
 import { Link } from 'expo-router'
 import { ComponentProps } from 'react'
-import { ScrollView, View } from 'react-native'
+import { FlatList, View } from 'react-native'
+import { ChatListItem } from './ChatListItem'
+import { useChats } from './hooks/useChats'
 
 export const EmptyChatsCTA = ({ className, ...props }: ComponentProps<typeof View>) => {
   return (
@@ -41,15 +43,23 @@ export const EmptyChatsCTA = ({ className, ...props }: ComponentProps<typeof Vie
 }
 
 export const ChatsPageContents = () => {
-  const isEmpty = true
+  const { chats, isEmpty } = useChats()
 
   if (isEmpty) {
     return <EmptyChatsCTA className="flex-1 p-6" />
   }
 
+  // TODO sorting by last message, message count, alphabetically...
+  // TODO merging multiple conversations to be part of the same canonical conversation
   return (
-    <ScrollView contentContainerClassName="gap-4 p-4">
-      <ThemedText color="secondary">chatz</ThemedText>
-    </ScrollView>
+    <FlatList
+      contentInsetAdjustmentBehavior="always"
+      data={chats}
+      renderItem={({ item }) => <ChatListItem chat={item} />}
+      keyExtractor={(item) => item.id.toString()}
+      contentContainerStyle={{ padding: 16 }}
+      ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+      showsVerticalScrollIndicator={false}
+    />
   )
 }

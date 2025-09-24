@@ -1,3 +1,5 @@
+// TODO create a borderCurve: continuous class, and use it everywhere where the style is currently used
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   // NOTE: Update this to include the paths to all files that contain Nativewind classes.

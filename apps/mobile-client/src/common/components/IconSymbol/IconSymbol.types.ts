@@ -1,18 +1,33 @@
-import { SFSymbol, SymbolWeight } from 'expo-symbols'
+import MaterialIcons from '@expo/vector-icons/MaterialIcons'
+import { SymbolView, SymbolWeight } from 'expo-symbols'
+import { ComponentProps } from 'react'
 import { OpaqueColorValue, StyleProp, TextStyle, ViewStyle } from 'react-native'
 
-// We whitelist allowed sf symbols here, so that we can later have an easily maintainable map of symbols to material icons.
-export const SFIconSymbols = [
-  'plus',
-  'lock',
-  'chevron.right',
-  'xmark',
-  'chevron.left',
-  'square.and.arrow.up',
-  'trash',
-] as const satisfies SFSymbol[]
+/**
+ * Add your SF Symbols to Material Icons mappings here.
+ * - see Material Icons in the [Icons Directory](https://icons.expo.fyi).
+ * - see SF Symbols in the [SF Symbols](https://developer.apple.com/sf-symbols/) app.
+ */
+export const MAPPING = {
+  plus: 'add',
+  lock: 'lock',
+  'chevron.right': 'chevron-right',
+  xmark: 'close',
+  'chevron.left': 'chevron-left',
+  'square.and.arrow.up': 'import-export',
+  trash: 'delete',
+  message: 'message',
+  'message.fill': 'message',
+  person: 'person',
+  'person.3': 'person-3',
+  'person.3.fill': 'person-3',
+  'person.fill': 'person',
+  'lock.fill': 'lock',
+} as const satisfies Partial<Record<ComponentProps<typeof SymbolView>['name'], ComponentProps<typeof MaterialIcons>['name']>>
 
-export type SFIconSymbol = (typeof SFIconSymbols)[number]
+
+
+export type SFIconSymbol = keyof typeof MAPPING
 
 export interface IconSymbolProps {
   name: SFIconSymbol

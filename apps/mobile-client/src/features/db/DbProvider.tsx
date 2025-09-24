@@ -1,6 +1,7 @@
 import { EStorageKey } from '@/common/constants/storage'
 import { drizzle } from 'drizzle-orm/expo-sqlite'
 import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator'
+import { useDrizzleStudio } from 'expo-drizzle-studio-plugin'
 import { deleteDatabaseSync, openDatabaseSync, SQLiteProvider } from 'expo-sqlite'
 import { createContext } from 'react'
 import { Alert, DevSettings } from 'react-native'
@@ -48,6 +49,9 @@ const checkDbHealth = async () => {
 
 export const DbProvider = ({ children }: { children: React.ReactNode }) => {
   useMigrations(db, migrations)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  useDrizzleStudio(expoDb as any)
 
   useEffectOnceWhen(async () => {
     const { ok, errors } = await checkDbHealth()
