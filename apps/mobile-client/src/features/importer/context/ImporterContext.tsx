@@ -3,6 +3,7 @@ import {
   EXPORT_BRAND_DETAILS,
   ExportBrandDetails,
 } from '@/features/chatapps/constants'
+import { useInvalidateDb } from '@/features/db/hooks/useDb'
 import ProcessorBridgeModule from '@/modules/processor-bridge/src/ProcessorBridgeModule'
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react'
 import { ImportProgress } from '../types'
@@ -27,6 +28,7 @@ export const ImporterProvider = ({
   brand: EExportBrand
 }) => {
   const [importStatus, setImportStatus] = useState<ImportProgress>({ status: 'idle' })
+  const invalidateDb = useInvalidateDb()
 
   useEffect(() => {
     const subscription = ProcessorBridgeModule.addListener(
@@ -47,11 +49,16 @@ export const ImporterProvider = ({
 
   const succeedImport = useCallback(() => {
     setImportStatus((prev) => ({ ...prev, status: 'success', message: undefined }))
-  }, [])
+    invalidateDb()
+  }, [invalidateDb])
 
-  const failImport = useCallback((message: string) => {
-    setImportStatus((prev) => ({ ...prev, status: 'error', message }))
-  }, [])
+  const failImport = useCallback(
+    (message: string) => {
+      setImportStatus((prev) => ({ ...prev, status: 'error', message }))
+      invalidateDb()
+    },
+    [invalidateDb],
+  )
 
   const brandDetails = EXPORT_BRAND_DETAILS[brand]
 
