@@ -13,7 +13,7 @@ export const useDb = () => {
 
 type LiveQueryParam = Parameters<typeof useLiveQuery>[0]
 
-export const useDbQuery = (query: (db: ExpoSQLiteDatabase) => LiveQueryParam) => {
+export const useDbQuery = <T extends LiveQueryParam>(query: (db: ExpoSQLiteDatabase) => T) => {
   const db = useDb()
   return useLiveQuery(query(db))
 }

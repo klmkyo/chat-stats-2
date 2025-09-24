@@ -32,3 +32,31 @@ export const EXPORT_BRAND_DETAILS: Record<EExportBrand, ExportBrandDetails> = {
     color: '#26D366',
   },
 }
+
+export interface ExportSourceDetails {
+  name: string
+  brand: EExportBrand
+}
+
+export const EXPORT_SOURCE_DETAILS: Record<EExportSource, ExportSourceDetails> = {
+  [EExportSource.MESSENGER_FB]: {
+    name: 'Facebook Archive',
+    brand: EExportBrand.MESSENGER,
+  },
+  [EExportSource.MESSENGER_E2E]: {
+    name: 'End-to-End Archive',
+    brand: EExportBrand.MESSENGER,
+  },
+  [EExportSource.WHATSAPP]: {
+    name: 'WhatsApp',
+    brand: EExportBrand.WHATSAPP,
+  },
+}
+
+export const getExportBrandFromSource = (source: EExportSource): EExportBrand => {
+  return EXPORT_SOURCE_DETAILS[source]?.brand ?? EExportBrand.MESSENGER
+}
+
+export const getExportSourceLabel = (source: EExportSource): string => {
+  return EXPORT_SOURCE_DETAILS[source]?.name ?? source
+}

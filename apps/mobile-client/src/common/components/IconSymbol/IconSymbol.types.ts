@@ -8,6 +8,8 @@ export const SFIconSymbols = [
   'chevron.right',
   'xmark',
   'chevron.left',
+  'square.and.arrow.up',
+  'trash',
 ] as const satisfies SFSymbol[]
 
 export type SFIconSymbol = (typeof SFIconSymbols)[number]

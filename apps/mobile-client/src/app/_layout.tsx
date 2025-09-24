@@ -7,6 +7,7 @@ import { QueryClientProvider } from '@/common/providers/QueryClientProvider'
 import { DbProvider } from '@/features/db/DbProvider'
 import { Suspense } from 'react'
 import { ActivityIndicator } from 'react-native'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { configureReanimatedLogger } from 'react-native-reanimated'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import '../global.css'
@@ -65,17 +66,19 @@ const LayoutInner = () => {
 
 export default function RootLayout() {
   return (
-    <ThemeProvider>
-      {/* TODO splashcreen? */}
-      <Suspense fallback={<ActivityIndicator size="large" />}>
-        <SafeAreaProvider>
-          <QueryClientProvider>
-            <DbProvider>
-              <LayoutInner />
-            </DbProvider>
-          </QueryClientProvider>
-        </SafeAreaProvider>
-      </Suspense>
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider>
+        {/* TODO splashcreen? */}
+        <Suspense fallback={<ActivityIndicator size="large" />}>
+          <SafeAreaProvider>
+            <QueryClientProvider>
+              <DbProvider>
+                <LayoutInner />
+              </DbProvider>
+            </QueryClientProvider>
+          </SafeAreaProvider>
+        </Suspense>
+      </ThemeProvider>
+    </GestureHandlerRootView>
   )
 }

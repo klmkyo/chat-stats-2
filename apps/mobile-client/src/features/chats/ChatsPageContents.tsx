@@ -1,47 +1,50 @@
 import { Button, ButtonText } from '@/common/components/Button'
 import { IconSymbol } from '@/common/components/IconSymbol/IconSymbol'
 import { ThemedText } from '@/common/components/ThemedText'
-import { useHeaderHeight } from '@react-navigation/elements'
-import { useRouter } from 'expo-router'
+import { cn } from '@/common/helpers/cn'
+import { Link } from 'expo-router'
+import { ComponentProps } from 'react'
 import { ScrollView, View } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 
-export const ChatsPageContents = () => {
-  const router = useRouter()
-  const headerHeight = useHeaderHeight()
+export const EmptyChatsCTA = ({ className, ...props }: ComponentProps<typeof View>) => {
+  return (
+    <View
+      {...props}
+      className={cn('flex-1 flex-col items-stretch justify-center gap-3', className)}
+    >
+      <View className="mt-6">
+        <ThemedText variant="title" color="secondary">
+          No chats imported (yet).
+        </ThemedText>
 
-  const isEmpty = true
+        <ThemedText color="secondary" className="mt-1">
+          Add your conversations from WhatsApp, Messenger, Telegram, or other messaging apps to get
+          started.
+        </ThemedText>
+      </View>
 
-  if (isEmpty) {
-    return (
-      <SafeAreaView
-        style={{ marginTop: headerHeight }}
-        className="p-6 flex-1 flex-col items-stretch justify-center mb-28 gap-3"
-      >
-        <View className="mt-6">
-          <ThemedText variant="title" color="secondary">
-            No chats imported (yet).
-          </ThemedText>
-
-          <ThemedText color="secondary" className="mt-1">
-            Add your conversations from WhatsApp, Messenger, Telegram, or other messaging apps to
-            get started.
-          </ThemedText>
-        </View>
-
-        <Button onPress={() => router.push('/import')}>
+      <Link href="/import" asChild className="mt-3">
+        <Button>
           <IconSymbol name="plus" size={20} color="white" />
           <ButtonText className="font-semibold">Import Chats</ButtonText>
         </Button>
+      </Link>
 
-        <View className="flex-row items-center justify-center gap-1.5">
-          <IconSymbol name="lock" size={16} colorClassName="text-text/50" />
-          <ThemedText className="text-sm text-text/50">
-            Your chats stay on your device - we keep things private.
-          </ThemedText>
-        </View>
-      </SafeAreaView>
-    )
+      <View className="flex-row items-center justify-center gap-1.5">
+        <IconSymbol name="lock" size={16} colorClassName="text-text/50" />
+        <ThemedText className="text-sm text-text/50">
+          Your chats stay on your device - we keep things private.
+        </ThemedText>
+      </View>
+    </View>
+  )
+}
+
+export const ChatsPageContents = () => {
+  const isEmpty = true
+
+  if (isEmpty) {
+    return <EmptyChatsCTA className="flex-1 p-6" />
   }
 
   return (

@@ -16,6 +16,8 @@ const MAPPING: Record<SFIconSymbol, ComponentProps<typeof MaterialIcons>['name']
   'chevron.right': 'chevron-right',
   xmark: 'close',
   'chevron.left': 'chevron-left',
+  'square.and.arrow.up': 'import-export',
+  trash: 'delete',
 }
 
 /**
