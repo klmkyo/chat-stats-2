@@ -6,6 +6,8 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use zip::ZipArchive;
 
+use crate::progress::{ensure_not_cancelled, ImportCancelled};
+
 #[derive(Clone, Debug)]
 pub struct FileLocation {
     pub zip_path: PathBuf,
@@ -19,14 +21,16 @@ pub struct FileIndex {
 }
 
 /// Build a file index from a set of ZIP paths. Indexes audio-like files by full path.
-pub fn build_file_index(paths: &[PathBuf]) -> FileIndex {
+pub fn build_file_index(paths: &[PathBuf]) -> Result<FileIndex, ImportCancelled> {
     let mut idx = FileIndex::default();
 
     for zp in paths {
+        ensure_not_cancelled()?;
         if let Ok(f) = File::open(zp) {
             if let Ok(archive) = ZipArchive::new(f) {
                 // Build index entries for this archive
                 for name in archive.file_names() {
+                    ensure_not_cancelled()?;
                     if is_audio_like(name) {
                         let loc = FileLocation {
                             zip_path: zp.clone(),
@@ -50,7 +54,7 @@ pub fn build_file_index(paths: &[PathBuf]) -> FileIndex {
         }
     }
 
-    idx
+    Ok(idx)
 }
 
 impl FileIndex {

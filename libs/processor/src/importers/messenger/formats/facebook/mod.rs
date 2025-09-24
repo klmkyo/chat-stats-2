@@ -13,7 +13,7 @@ use zip::ZipArchive;
 use crate::database::WriteBatch;
 use crate::importers::messenger::utils::{ensure_conversation, ensure_person_in_conversation};
 use crate::importers::messenger::ImportState;
-use crate::progress::ImportProgressTracker;
+use crate::progress::{ensure_not_cancelled, ImportProgressTracker};
 use crate::utils::audio::detect_duration_seconds;
 
 pub mod json;
@@ -33,6 +33,7 @@ pub fn import_facebook_archive<R: std::io::Seek + std::io::Read>(
     let entries = paths::collect_message_entries(archive, is_messages_re);
     progress.add_total(entries.len() as u32);
     for (_thread_dir, _num, json_path) in entries.into_iter() {
+        ensure_not_cancelled()?;
         let mut json_content = String::new();
         {
             let mut file = archive
@@ -98,6 +99,7 @@ pub fn import_thread<R: std::io::Seek + std::io::Read>(
 
     // Messages
     for m in parsed.messages.iter().rev() {
+        ensure_not_cancelled()?;
         if m.is_geoblocked_for_viewer {
             continue;
         }

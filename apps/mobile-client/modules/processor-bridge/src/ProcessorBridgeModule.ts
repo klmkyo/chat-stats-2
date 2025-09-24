@@ -9,8 +9,11 @@ export interface FileInfo {
   is_directory: boolean
 }
 
+export type ImportStatus = 'success' | 'cancelled'
+
 declare class ProcessorBridgeModule extends NativeModule<ProcessorBridgeModuleEvents> {
-  importMessengerArchives(filePaths: string[], dbPath: string): Promise<number>
+  importMessengerArchives(filePaths: string[], dbPath: string): Promise<ImportStatus>
+  cancelImport(): Promise<void>
 }
 
 // This call loads the native module object from the JSI.

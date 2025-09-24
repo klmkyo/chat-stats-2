@@ -12,6 +12,7 @@ enum ProcessorBridgeError: Int, Error, LocalizedError {
   case fileDescriptorFailed = 1003
   case processingFailed = 1004
   case invalidDatabasePath = 1005
+  case importCancelled = 1006
 
   var errorDescription: String? {
     switch self {
@@ -21,6 +22,7 @@ enum ProcessorBridgeError: Int, Error, LocalizedError {
     case .fileDescriptorFailed: return "Failed to duplicate file descriptor"
     case .processingFailed: return "Failed to process ZIP file"
     case .invalidDatabasePath: return "Database path is invalid"
+    case .importCancelled: return "Import was cancelled"
     }
   }
 
@@ -92,13 +94,13 @@ public class ProcessorBridgeModule: Module {
         ])
     }
 
-    AsyncFunction("importMessengerArchives") { (filePaths: [String], dbPath: String) -> Int in
+    AsyncFunction("importMessengerArchives") { (filePaths: [String], dbPath: String) -> String in
       guard !dbPath.isEmpty else {
         throw ProcessorBridgeError.invalidDatabasePath
       }
 
       if filePaths.isEmpty {
-        return 0
+        throw ProcessorBridgeError.processingFailed
       }
 
       self.beginProgressUpdates()
@@ -109,17 +111,30 @@ public class ProcessorBridgeModule: Module {
         throw ProcessorBridgeError.processingFailed
       }
 
-      let status = jsonString.withCString { filesPtr in
+      let result = jsonString.withCString { filesPtr in
         dbPath.withCString { databasePtr in
-          processor_import_files_json(filesPtr, databasePtr)
+          processor_import_messenger_archives_json(filesPtr, databasePtr)
         }
       }
 
-      guard status == 0 else {
+      guard let cString = result else {
         throw ProcessorBridgeError.processingFailed
       }
 
-      return filePaths.count
+      let status = String(cString: cString)
+
+      switch status {
+      case "success":
+        return status
+      case "cancelled":
+        return status
+      default:
+        throw ProcessorBridgeError.processingFailed
+      }
+    }
+
+    AsyncFunction("cancelImport") {
+      processor_request_cancel_import()
     }
 
     // Enables the module to be used as a native view. Definition components that are accepted as part of the

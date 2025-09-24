@@ -4,6 +4,7 @@
 //! which uses a different structure and JSON schema than the legacy format.
 
 use crate::importers::messenger::utils::{ensure_conversation, ensure_person_in_conversation};
+use crate::progress::{ensure_not_cancelled, ImportCancelled, ImportProgressTracker};
 use crate::utils::audio::detect_duration_seconds;
 use crate::{
     database::WriteBatch, importers::messenger::formats::e2e::json::E2eExportRoot,
@@ -13,15 +14,14 @@ use anyhow::{Context, Result};
 use std::io::{Read, Seek};
 use zip::read::ZipArchive;
 
-use crate::progress::ImportProgressTracker;
-
 pub mod json;
 
 /// Detect if a ZIP archive is the new E2E format: root contains json files and a `media/` dir.
-pub fn is_e2e_archive<R: Seek + Read>(archive: &ZipArchive<R>) -> bool {
+pub fn is_e2e_archive<R: Seek + Read>(archive: &ZipArchive<R>) -> Result<bool, ImportCancelled> {
     let mut has_media = false;
     let mut has_root_json = false;
     for name in archive.file_names() {
+        ensure_not_cancelled()?;
         if name.starts_with("media/") {
             has_media = true;
         }
@@ -29,10 +29,10 @@ pub fn is_e2e_archive<R: Seek + Read>(archive: &ZipArchive<R>) -> bool {
             has_root_json = true;
         }
         if has_media && has_root_json {
-            return true;
+            return Ok(true);
         }
     }
-    false
+    Ok(false)
 }
 
 /// Import an E2E-format ZIP archive.
@@ -53,6 +53,7 @@ pub fn import_e2e_archive<R: Seek + Read>(
     progress.add_total(root_jsons.len() as u32);
 
     for json_path in root_jsons {
+        ensure_not_cancelled()?;
         let mut json_content = String::new();
         {
             let mut f = archive
@@ -125,6 +126,7 @@ pub fn import_e2e_json<R: Seek + Read>(
     }
 
     for m in parsed.messages {
+        ensure_not_cancelled()?;
         // Sender (per-conversation person)
         let sender_id = ensure_person_in_conversation(batch, state, conv_id, &m.sender_name)?;
 

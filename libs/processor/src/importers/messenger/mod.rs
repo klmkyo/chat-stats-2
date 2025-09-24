@@ -8,11 +8,16 @@
 //! Post-import merging is handled non-destructively by assigning canonical IDs.
 
 use anyhow::{Context, Result};
-use std::{collections::HashMap, fs::File, path::Path, path::PathBuf};
+use std::{
+    collections::HashMap,
+    fs::File,
+    path::{Path, PathBuf},
+    slice,
+};
 use zip::read::ZipArchive;
 
 use crate::database::{MessageDb, WriteBatch};
-use crate::progress::ImportProgressTracker;
+use crate::progress::{ensure_not_cancelled, ImportProgressTracker};
 
 pub mod formats;
 pub mod utils;
@@ -59,12 +64,13 @@ pub enum ExportFormat {
 
 /// Determine the export format of a ZIP archive.
 fn determine_zip_format(path: &Path) -> Result<ExportFormat> {
+    ensure_not_cancelled()?;
     let file =
         File::open(path).with_context(|| format!("Failed to open ZIP file: {}", path.display()))?;
     let archive = ZipArchive::new(file)
         .with_context(|| format!("Failed to read ZIP archive: {}", path.display()))?;
 
-    if formats::e2e::is_e2e_archive(&archive) {
+    if formats::e2e::is_e2e_archive(&archive)? {
         Ok(ExportFormat::E2E)
     } else {
         Ok(ExportFormat::Facebook)
@@ -76,7 +82,7 @@ fn determine_zip_format(path: &Path) -> Result<ExportFormat> {
 /// # Arguments
 /// * `paths` - List of file paths to import (ZIP archives or JSON files)
 /// * `db_path` - Path to the pre-initialized SQLite database to update
-pub fn import_to_database(paths: Vec<PathBuf>, db_path: &Path) -> Result<()> {
+pub fn import_messenger_exports(paths: Vec<PathBuf>, db_path: &Path) -> Result<Vec<i64>> {
     let mut db = MessageDb::open(db_path)
         .with_context(|| format!("Failed to open SQLite database: {}", db_path.display()))?;
     let mut batch = db
@@ -85,42 +91,51 @@ pub fn import_to_database(paths: Vec<PathBuf>, db_path: &Path) -> Result<()> {
 
     let mut state = ImportState::new();
     // Build a global media index so we can resolve audio across ZIPs by full pathname.
-    state.file_index = utils::file_index::build_file_index(&paths);
+    state.file_index = utils::file_index::build_file_index(&paths)?;
 
     let mut progress = ImportProgressTracker::new();
     progress.reset();
+    ensure_not_cancelled()?;
 
     // Partition selected paths by export format (zip-based detection)
     let mut facebook_paths: Vec<PathBuf> = Vec::new();
     let mut e2e_paths: Vec<PathBuf> = Vec::new();
     for path in paths.into_iter() {
+        ensure_not_cancelled()?;
         match determine_zip_format(&path)? {
             ExportFormat::Facebook => facebook_paths.push(path),
             ExportFormat::E2E => e2e_paths.push(path),
         }
     }
 
+    let mut export_ids: Vec<i64> = Vec::new();
+
     // Facebook: one export across all selected FB zips
     if !facebook_paths.is_empty() {
+        ensure_not_cancelled()?;
         let fb_meta_json = compute_group_meta(&facebook_paths);
         let export_id = batch.insert_export("messenger:facebook", None, Some(&fb_meta_json))?;
+        export_ids.push(export_id);
 
         for path in facebook_paths {
+            ensure_not_cancelled()?;
             import_facebook_zip(&path, export_id, &mut batch, &mut state, &mut progress)?;
         }
     }
 
     // E2E: one export per zip
     for path in e2e_paths {
-        let meta_json = compute_group_meta(std::slice::from_ref(&path));
+        ensure_not_cancelled()?;
+        let meta_json = compute_group_meta(slice::from_ref(&path));
         let export_id = batch.insert_export("messenger:e2e", None, Some(&meta_json))?;
+        export_ids.push(export_id);
         import_e2e_zip(&path, export_id, &mut batch, &mut state, &mut progress)?;
     }
 
     batch
         .commit()
         .context("Failed to commit database transaction")?;
-    Ok(())
+    Ok(export_ids)
 }
 
 /// Import Facebook conversations from a ZIP archive.

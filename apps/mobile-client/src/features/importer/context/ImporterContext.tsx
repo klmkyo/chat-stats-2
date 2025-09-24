@@ -42,11 +42,11 @@ export const ImporterProvider = ({
   }, [])
 
   const startImport = useCallback(() => {
-    setImportStatus((prev) => ({ ...prev, status: 'running' }))
+    setImportStatus(() => ({ status: 'running', processed: 0, total: 0, message: undefined }))
   }, [])
 
   const succeedImport = useCallback(() => {
-    setImportStatus((prev) => ({ ...prev, status: 'success' }))
+    setImportStatus((prev) => ({ ...prev, status: 'success', message: undefined }))
   }, [])
 
   const failImport = useCallback((message: string) => {

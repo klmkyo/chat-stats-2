@@ -1,10 +1,5 @@
-import { ThemedText } from '@/common/components/ThemedText'
-import { View } from 'react-native'
+import { ImportProgressScreen } from '@/features/importer/components/ImportProgressScreen'
 
-export default function ImporterProgressScreen() {
-  return (
-    <View>
-      <ThemedText>ImporterProgress</ThemedText>
-    </View>
-  )
+export default function MessengerImportProgressScreen() {
+  return <ImportProgressScreen />
 }

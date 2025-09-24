@@ -50,9 +50,19 @@ export default function MessengerFilePickerScreen() {
       startImport()
       router.push('/import/messenger/progress')
 
-      await ProcessorBridgeModule.importMessengerArchives(filePaths, dbPath)
+      const status = await ProcessorBridgeModule.importMessengerArchives(filePaths, dbPath)
 
-      succeedImport()
+      if (status === 'success') {
+        succeedImport()
+        return
+      }
+
+      if (status === 'cancelled') {
+        failImport('Import cancelled.')
+        return
+      }
+
+      failImport(`Import finished with unknown status: ${status}`)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error'
       const normalized = message.toLowerCase()
@@ -62,8 +72,6 @@ export default function MessengerFilePickerScreen() {
       } else {
         failImport(message)
       }
-    } finally {
-      succeedImport()
     }
   }
 

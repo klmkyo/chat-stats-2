@@ -7,12 +7,17 @@ import { QueryClientProvider } from '@/common/providers/QueryClientProvider'
 import { DbProvider } from '@/features/db/DbProvider'
 import { Suspense } from 'react'
 import { ActivityIndicator } from 'react-native'
+import { configureReanimatedLogger } from 'react-native-reanimated'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import '../global.css'
 
 export const unstable_settings = {
   initialRouteName: '(mainscreen)',
 }
+
+configureReanimatedLogger({
+  strict: false,
+})
 
 const LayoutInner = () => {
   const { themeColors } = useTheme()

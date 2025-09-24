@@ -54,8 +54,18 @@ fn main() {
             }
 
             // Stage 1: Import everything into normalized DB with export_source
-            match processor::importers::messenger::import_to_database(files, &db) {
-                Ok(()) => println!("Imported into DB: {}", db.display()),
+            match processor::importers::messenger::import_messenger_exports(files, &db) {
+                Ok(export_ids) => {
+                    if export_ids.is_empty() {
+                        println!("Import completed but no exports were recorded.");
+                    } else {
+                        println!(
+                            "Imported export IDs {:?} into DB {}",
+                            export_ids,
+                            db.display()
+                        );
+                    }
+                }
                 Err(e) => {
                     eprintln!("Import failed: {}", e);
                     std::process::exit(1);
