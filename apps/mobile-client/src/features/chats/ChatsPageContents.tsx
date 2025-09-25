@@ -49,7 +49,8 @@ export const ChatsPageContents = () => {
     return <EmptyChatsCTA className="flex-1 p-6" />
   }
 
-  // TODO sorting by last message, message count, alphabetically...
+  // TODO sorting by last message, message count, alphabetically... Also needs to support filtering by source(s), and by conversation type (DM, group).
+
   // TODO merging multiple conversations to be part of the same canonical conversation
   return (
     <FlatList
