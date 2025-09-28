@@ -38,9 +38,13 @@ export const SettingsPageContents = () => {
           headerTitle: 'Settings',
         }}
       />
-      <ScrollView contentContainerClassName="" className="p-4">
+      <ScrollView contentContainerClassName="gap-3" className="p-4">
         <SettingsLink href="/settings/exports" icon="square.and.arrow.up">
           Exports
+        </SettingsLink>
+
+        <SettingsLink href="/merge-suggestions" icon="wand.and.stars">
+          Suggested merges
         </SettingsLink>
       </ScrollView>
     </>

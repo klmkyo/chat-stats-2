@@ -48,14 +48,18 @@ const getChatsBaseQuery = (db: ExpoSQLiteDatabase) =>
 export const useChats = () => {
   const { data: baseRows = [] } = useDbQuery(getChatsBaseQuery)
 
-  const chats: Chat[] = useMemo(() => baseRows.map(({ sourcesCsv, ...row }) => {
-    const sources = (sourcesCsv ?? '')
-      .split(',')
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0) as EExportSource[]
-      
-    return { ...row, sources }
-  }), [baseRows])
+  const chats: Chat[] = useMemo(
+    () =>
+      baseRows.map(({ sourcesCsv, ...row }) => {
+        const sources = (sourcesCsv ?? '')
+          .split(',')
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0) as EExportSource[]
+
+        return { ...row, sources }
+      }),
+    [baseRows],
+  )
 
   return {
     chats,

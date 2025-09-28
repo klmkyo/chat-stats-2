@@ -1,6 +1,5 @@
 import { IconSymbol } from '@/common/components/IconSymbol/IconSymbol'
 import { ThemedText } from '@/common/components/ThemedText'
-import { useHeaderHeight } from '@react-navigation/elements'
 import { count, desc, eq } from 'drizzle-orm'
 import { Stack } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
@@ -229,7 +228,6 @@ const SwipeableExportCard = ({
 export const ExportsPageContents = () => {
   const db = useDb()
   const [activePanCardId, setActivePanCardId] = useState<number | null>(null)
-  const headerHeight = useHeaderHeight()
 
   // Get exports with conversation counts
   const { data: exports } = useDbQuery((db) =>

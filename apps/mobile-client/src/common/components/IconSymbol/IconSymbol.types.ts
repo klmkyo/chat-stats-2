@@ -23,9 +23,16 @@ export const MAPPING = {
   'person.3.fill': 'person-3',
   'person.fill': 'person',
   'lock.fill': 'lock',
-} as const satisfies Partial<Record<ComponentProps<typeof SymbolView>['name'], ComponentProps<typeof MaterialIcons>['name']>>
-
-
+  'wand.and.stars': 'auto-fix-high',
+  'person.2.circle': 'groups',
+  circle: 'circle',
+  'checkmark.circle.fill': 'check-circle',
+  'arrow.uturn.left': 'undo',
+  'arrow.down': 'arrow-downward',
+  'arrow.merge': 'call-merge',
+} as const satisfies Partial<
+  Record<ComponentProps<typeof SymbolView>['name'], ComponentProps<typeof MaterialIcons>['name']>
+>
 
 export type SFIconSymbol = keyof typeof MAPPING
 

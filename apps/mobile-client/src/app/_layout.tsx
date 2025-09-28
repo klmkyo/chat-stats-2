@@ -60,6 +60,22 @@ const LayoutInner = () => {
           headerShown: false,
         }}
       />
+
+      <Stack.Screen
+        name="merge-suggestions"
+        options={{
+          presentation: 'modal',
+          headerTitle: 'Merge Suggestions',
+        }}
+      />
+
+      <Stack.Screen
+        name="merge-conversations"
+        options={{
+          presentation: 'modal',
+          headerTitle: 'Merge Conversations',
+        }}
+      />
     </Stack>
   )
 }

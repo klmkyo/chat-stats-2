@@ -3,13 +3,9 @@ import { ThemedText } from '@/common/components/ThemedText'
 import { cn } from '@/common/helpers/cn'
 import { ComponentProps } from 'react'
 import { Image, Pressable, View } from 'react-native'
-import {
-  EExportSource,
-  EXPORT_BRAND_DETAILS,
-  getExportBrandFromSource,
-} from '../chatapps/constants'
 import { EConversationType } from '../db/schema'
 import { type Chat } from './hooks/useChats'
+import { ChatSourceIcon } from './components/ChatSourceIcons'
 
 interface ChatListItemProps extends ComponentProps<typeof Pressable> {
   chat: Chat
@@ -31,30 +27,6 @@ const formatLastMessageTime = (timestamp: number): string => {
     day: 'numeric',
     ...(messageYear !== currentYear && { year: 'numeric' }),
   })
-}
-
-const ExportSourceIcon = ({ source }: { source: EExportSource }) => {
-  const brand = getExportBrandFromSource(source)
-  const brandDetails = EXPORT_BRAND_DETAILS[brand]
-
-  const getFloater = () => {
-    if (source === EExportSource.MESSENGER_E2E) {
-      return (
-        <View className="absolute z-10 bottom-0 right-0 translate-x-1/3 translate-y-1/3">
-          <IconSymbol name="lock.fill" size={8} color="#FFC743" />
-        </View>
-      )
-    }
-
-    return null
-  }
-
-  return (
-    <View className="size-4 relative">
-      <Image source={brandDetails.icon} className="h-full w-full" />
-      {getFloater()}
-    </View>
-  )
 }
 
 export const ChatListItem = ({ chat, className, ...props }: ChatListItemProps) => {
@@ -110,10 +82,9 @@ export const ChatListItem = ({ chat, className, ...props }: ChatListItemProps) =
         <View className="flex-row items-center justify-between">
           <View className="flex-1 flex-row items-center gap-2">
             <View className="flex-row items-center gap-1">
-              {/* TODO we should have icons for sources, not brands */}
-              {chat.sources.map((source) => {
-                return <ExportSourceIcon key={source} source={source} />
-              })}
+              {chat.sources.map((source, index) => (
+                <ChatSourceIcon key={`${source}-${index}`} source={source} />
+              ))}
             </View>
 
             {participantText && (

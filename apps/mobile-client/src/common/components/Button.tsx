@@ -1,11 +1,11 @@
 import { cn } from '@/common/helpers/cn'
 import { cva, type VariantProps } from 'class-variance-authority'
 import React from 'react'
-import { TouchableOpacity, TouchableOpacityProps } from 'react-native'
+import { Text, TouchableOpacity, TouchableOpacityProps, View } from 'react-native'
 import { ThemedText } from './ThemedText'
 
 const buttonVariants = cva(
-  'flex gap-2 flex-row items-center justify-center rounded-full active:scale-95 transition-all duration-150',
+  'flex gap-2 flex-row items-center justify-center rounded-full active:scale-95 transition-all duration-150 relative',
   {
     variants: {
       variant: {
@@ -61,6 +61,7 @@ export interface ButtonProps
   textClassName?: string
   children?: React.ReactNode
   disabled?: boolean
+  isLoading?: boolean
 }
 
 // Separate ButtonText component for rendering button text with correct styles
@@ -85,6 +86,7 @@ export function Button({
   textClassName,
   children,
   style,
+  isLoading = false,
   ...props
 }: ButtonProps) {
   return (
@@ -95,6 +97,12 @@ export function Button({
       style={[{ borderCurve: 'continuous' }, style]}
       {...props}
     >
+      {isLoading && (
+        <View className="absolute inset-0 items-center justify-center z-10">
+          <Text className="text-blue-500 font-extrabold bg-black">Loabing :)</Text>
+        </View>
+      )}
+
       {typeof children === 'string' ? (
         <ButtonText variant={variant} size={size} className={textClassName}>
           {children}
